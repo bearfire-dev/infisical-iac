@@ -58,6 +58,9 @@ describe("computeChangedRoots", () => {
   it("--all lists everything, global first", () => {
     const r = allRoots(projects);
     expect(r.bootstrap).toBe(true);
-    expect(r.matrix.map((m) => m.root)).toEqual(["global", ...projects.map((p) => `projects/${p}`)]);
+    expect(r.matrix.map((m) => m.root)).toEqual([
+      "global",
+      ...projects.map((p) => `projects/${p}`),
+    ]);
   });
 });
