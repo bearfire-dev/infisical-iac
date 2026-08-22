@@ -94,7 +94,7 @@ terraform -chdir=bootstrap/terraform output -raw bootstrap_project_id
 
 ## 6. Populate the 9 placeholders
 
-In Infisical → project **Platform Bootstrap** → env `prod`:
+In Infisical → project **IaC Secret CICD** → env `prod`:
 
 | Folder | Secret | Value |
 |---|---|---|
