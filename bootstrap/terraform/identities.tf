@@ -9,7 +9,7 @@
 resource "infisical_identity" "plan" {
   org_id                = var.organization_id
   name                  = "${var.identity_prefix}-plan"
-  role                  = var.plan_identity_org_role
+  role                  = var.enable_custom_org_roles ? infisical_org_role.plan[0].slug : var.plan_identity_org_role
   has_delete_protection = true
 
   metadata = [
@@ -90,4 +90,26 @@ resource "infisical_project_identity" "apply" {
   project_id  = infisical_project.bootstrap.id
   identity_id = infisical_identity.apply.id
   roles       = [{ role_slug = "viewer" }]
+}
+
+# Least-privilege organization role for the plan identity. Project-level reads
+# come from per-project `viewer` membership (granted by the project module);
+# this role only adds what org-scoped resources a plan must read.
+#
+# Custom organization roles require the Infisical Enterprise plan. Until then
+# the plan identity stays `member` (cannot read org-scoped App Connections), so
+# the global root is planned only on main under the apply identity. Set
+# enable_custom_org_roles = true after upgrading to switch to this role.
+resource "infisical_org_role" "plan" {
+  count = var.enable_custom_org_roles ? 1 : 0
+
+  name        = "Infisical IaC plan"
+  slug        = "infisical-iac-plan"
+  description = "Read-only organization access for bearfire-dev/infisical-iac Terraform plans"
+
+  permissions = [
+    { subject = "app-connections", action = ["read"] },
+    { subject = "identity", action = ["read"] },
+    { subject = "role", action = ["read"] },
+  ]
 }

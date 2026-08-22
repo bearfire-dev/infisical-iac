@@ -58,7 +58,13 @@ jobs:
           else
             json="$(pnpm --silent changed-roots --json)"
           fi
-          matrix="$(jq -c '.matrix' <<<"$json")"
+          # The plan identity cannot read org-scoped App Connections (custom org
+          # roles are Infisical Enterprise-only), so `global` is planned on main
+          # by apply.yml under production approval. See docs/OPERATIONS.md.
+          if jq -e '.matrix[] | select(.spec == "global")' <<<"$json" >/dev/null; then
+            echo "::notice::global root changed: it is not planned on pull requests; apply.yml plans and applies it on main with production approval (docs/OPERATIONS.md)."
+          fi
+          matrix="$(jq -c '[.matrix[] | select(.spec != "global")]' <<<"$json")"
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
           echo "count=$(jq 'length' <<<"$matrix")" >> "$GITHUB_OUTPUT"
           echo "Roots to plan: $(jq -r '[.[].spec] | join(", ")' <<<"$matrix")"

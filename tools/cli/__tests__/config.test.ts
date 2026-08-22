@@ -12,7 +12,7 @@ import { findRepoRoot } from "../src/lib/repo.js";
 
 const repoRoot = findRepoRoot(import.meta.dirname);
 const sigla = parseProjectYaml(
-  readFileSync(join(repoRoot, "projects", "sigla-writer", "project.yaml"), "utf8"),
+  readFileSync(join(import.meta.dirname, "fixtures", "example-project.yaml"), "utf8"),
 ) as ProjectConfig;
 
 const clone = (): ProjectConfig => structuredClone(sigla);
@@ -22,7 +22,7 @@ const must = <T>(v: T | undefined): T => {
 };
 
 describe("project.yaml validation", () => {
-  it("accepts sigla-writer", () => {
+  it("accepts the example project fixture", () => {
     const r = validateConfigObject(sigla, repoRoot);
     expect(r.errors).toEqual([]);
     expect(r.config?.project.slug).toBe("sigla-writer");

@@ -71,3 +71,15 @@ Dedicated PR (Dependabot opens them, label `provider-upgrade`). Required in the 
 ## Railway: multiple accounts, one connection
 
 Bearfire deploys to two separate Railway accounts. The single `bearfire-railway` App Connection uses one Railway token that has access to both; which account a sync targets is determined entirely by `destination.project_id` / `environment_id` / `service_id` in the project's `project.yaml`. When rotating `RAILWAY_API_TOKEN`, the new token must again be granted access to **both** accounts or syncs into the second account will start failing (`pnpm sync:status --all` will show it).
+
+## Why the global root is not planned on pull requests
+
+Infisical custom organization roles are Enterprise-only. Without one, the plan identity's org role is `member`, which cannot read org-scoped App Connections, so a Terraform plan of `global/` fails under the plan identity. Granting the plan identity `admin` would let any same-repo pull request read every project's secret values, which is a larger risk than losing PR-time plans for a rarely-changed root.
+
+Current behaviour:
+
+- `plan.yml` skips `global` on pull requests and posts a notice; `ci.yml` still runs `terraform validate` on it.
+- `apply.yml` plans and applies `global` on `main` under the apply identity with `production` approval — the human approving sees the plan summary there.
+- `drift.yml` skips `global`; check it manually with `pnpm plan --global` from an operator shell (`docs/BOOTSTRAP.md` §auth) when App Connections change.
+
+After upgrading to Enterprise, set `enable_custom_org_roles = true` in the bootstrap root, apply, and remove the `global` exclusions from `plan.yml` and `drift.yml`.

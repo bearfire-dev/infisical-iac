@@ -1,4 +1,5 @@
-# Daily drift detection. Read-only (plan identity). Plans global and every
+# Daily drift detection. Read-only (plan identity). Plans every project root
+# (global is excluded: see docs/OPERATIONS.md, plan identity limitation) and every
 # project with -detailed-exitcode, queries sync health through the bridge and
 # API, and verifies connections.lock.json. Opens or updates ONE issue titled
 # "Drift detected". Never applies anything.
@@ -65,7 +66,7 @@ jobs:
           set -uo pipefail
           : > /tmp/drift-rows.txt
           drift=false
-          for entry in $(pnpm --silent changed-roots --all --json | jq -r '.matrix[] | select(.spec != "bootstrap") | "\(.spec)|\(.root)"'); do
+          for entry in $(pnpm --silent changed-roots --all --json | jq -r '.matrix[] | select(.spec != "bootstrap" and .spec != "global") | "\(.spec)|\(.root)"'); do
             spec="${entry%%|*}"; dir="${entry##*|}"
             echo "::group::plan $spec"
             if scripts/terraform-init.sh "$spec" >/dev/null 2>&1; then

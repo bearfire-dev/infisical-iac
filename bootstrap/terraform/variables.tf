@@ -24,7 +24,7 @@ variable "identity_prefix" {
 }
 
 variable "plan_identity_org_role" {
-  description = "Organization role for the plan identity. `member` is enough to read projects it is a member of; project memberships are granted per project by the module."
+  description = "Organization role for the plan identity. `member` cannot read org-scoped App Connections (so global plans run only on main); project memberships are granted per project by the module. Ignored when enable_custom_org_roles is true."
   type        = string
   default     = "member"
 }
@@ -79,4 +79,10 @@ variable "oidc_audience" {
 variable "credential_rotation_days" {
   type    = number
   default = 90
+}
+
+variable "enable_custom_org_roles" {
+  description = "Create and assign the custom read-only org role for the plan identity. Requires Infisical Enterprise (custom org roles are plan-gated)."
+  type        = bool
+  default     = false
 }
