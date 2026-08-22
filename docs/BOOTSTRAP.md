@@ -136,6 +136,8 @@ gh run watch --repo bearfire-dev/infisical-iac
 
 Success = the `Authenticate to Infisical (plan identity)` step prints `Authenticated to Infisical as identity ...` and the global plan runs (it will show creates; nothing is applied). Failure modes: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) → OIDC.
 
+> **OIDC subject format.** GitHub issues the immutable subject `repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:<name>`, not the legacy `repo:<owner>/<repo>:environment:<name>`. The bootstrap root binds the immutable form; if a login fails with "OIDC subject not allowed", the auth action logs the presented claims so the binding can be corrected.
+
 ## 9. Global apply
 
 Open a PR touching `global/` (for example the Railway `credentialVersion` comment) or dispatch:

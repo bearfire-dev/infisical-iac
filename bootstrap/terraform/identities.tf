@@ -36,6 +36,12 @@ locals {
   github_oidc_issuer = "https://token.actions.githubusercontent.com"
   trusted_ips        = [{ ip_address = "0.0.0.0/0" }, { ip_address = "::/0" }]
 
+  # GitHub's immutable subject format embeds the owner and repository IDs:
+  #   repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:<env>
+  # A rename of the org or repository therefore changes the *name* parts but
+  # the bound IDs still pin trust to this exact repository.
+  github_subject_prefix = "repo:${var.github_owner}@${var.github_owner_id}/${var.github_repository}@${var.github_repository_id}"
+
   base_bound_claims = {
     repository          = local.github_repo
     repository_id       = var.github_repository_id
@@ -48,7 +54,7 @@ resource "infisical_identity_oidc_auth" "plan" {
   bound_issuer       = local.github_oidc_issuer
   oidc_discovery_url = local.github_oidc_issuer
   bound_audiences    = [var.oidc_audience]
-  bound_subject      = "repo:${local.github_repo}:environment:${var.github_plan_environment}"
+  bound_subject      = "${local.github_subject_prefix}:environment:${var.github_plan_environment}"
   bound_claims       = local.base_bound_claims
 
   access_token_ttl            = 1800
@@ -62,7 +68,7 @@ resource "infisical_identity_oidc_auth" "apply" {
   bound_issuer       = local.github_oidc_issuer
   oidc_discovery_url = local.github_oidc_issuer
   bound_audiences    = [var.oidc_audience]
-  bound_subject      = "repo:${local.github_repo}:environment:${var.github_apply_environment}"
+  bound_subject      = "${local.github_subject_prefix}:environment:${var.github_apply_environment}"
   bound_claims = merge(local.base_bound_claims, {
     ref = "refs/heads/${var.github_default_branch}"
   })
