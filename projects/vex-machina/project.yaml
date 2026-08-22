@@ -36,16 +36,22 @@ secret_sets:
         comment: Railway deployment token used by GitHub Actions
         reminder_days: 90
 
-syncs:
-  prod-ci-to-github:
-    type: github
-    connection: github
-    source:
-      environment: prod
-      secret_set: ci
-    destination:
-      scope: repository
-      owner: bearfire-dev
-      repository: vex-machina-explorations
-    auto_sync: true
-    manage_deletions: true
+# Syncs are parked until destination identifiers are confirmed (Railway
+# project/environment/service IDs, Worker script name, PAT repo access).
+# Un-comment in a follow-up PR; each sync makes Infisical the owner of that
+# destination (docs/ADDING_A_PROJECT.md → "Enabling syncs").
+syncs: {}
+
+# syncs:
+#   prod-ci-to-github:
+#     type: github
+#     connection: github
+#     source:
+#       environment: prod
+#       secret_set: ci
+#     destination:
+#       scope: repository
+#       owner: bearfire-dev
+#       repository: vex-machina-explorations
+#     auto_sync: true
+#     manage_deletions: true

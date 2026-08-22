@@ -67,3 +67,7 @@ Dedicated PR (Dependabot opens them, label `provider-upgrade`). Required in the 
 - Infisical: both identities exist, OIDC bindings unchanged (subject, audience, `repository_id`, `repository_owner_id`, `ref` for apply).
 - GitHub environments: `production` and `bootstrap` still require reviewers and `main` only.
 - No repository secrets except (optionally) `GITLEAKS_LICENSE`: `gh secret list`.
+
+## Railway: multiple accounts, one connection
+
+Bearfire deploys to two separate Railway accounts. The single `bearfire-railway` App Connection uses one Railway token that has access to both; which account a sync targets is determined entirely by `destination.project_id` / `environment_id` / `service_id` in the project's `project.yaml`. When rotating `RAILWAY_API_TOKEN`, the new token must again be granted access to **both** accounts or syncs into the second account will start failing (`pnpm sync:status --all` will show it).

@@ -9,7 +9,12 @@
  * Alchemy's own state is kept in Cloudflare (CloudflareStateStore), never inside
  * a bucket this stack creates. Run locally with a human Cloudflare session:
  *
- *   CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... pnpm bootstrap:state
+ *   CLOUDFLARE_ACCOUNT_ID=...  and either CLOUDFLARE_API_TOKEN=...  or  CLOUDFLARE_API_KEY=... CLOUDFLARE_EMAIL=...
+ *   ALCHEMY_STATE_TOKEN=<random secret>   # authenticates Alchemy to its own state Worker.
+ *                                         # Generate once (openssl rand -hex 32), keep it in
+ *                                         # platform-bootstrap; losing it orphans Alchemy state
+ *                                         # (buckets survive; re-adopt with `adopt: true`).
+ *   pnpm bootstrap:state
  *
  * Destroy is deliberately not wired to a root-level script; see docs/STATE_RECOVERY.md.
  */

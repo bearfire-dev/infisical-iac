@@ -43,3 +43,17 @@ Run: `INFISICAL_HOST=… INFISICAL_TOKEN=… INFISICAL_ORG_ID=… pnpm provider:
 ## Failure policy
 
 Any step fails → stop the rollout, document here, test the last known-good pair, never mask with broad `ignore_changes`. Upgrades only via dedicated `provider-upgrade` PRs with: changelog review, this table updated, all-root plans, state snapshot, rollback note.
+
+## Evidence from bootstrap (2026-08-22, Terraform 1.13.3, provider 0.19.24)
+
+Observed on the real `bootstrap` root against R2-backed state (not the full `pnpm provider:acceptance` suite, which is still pending):
+
+| Check | Result |
+|---|---|
+| `value_wo` placeholder absent from state (`value` = null, only `value_wo_version` stored) | ✓ |
+| Repeat plan after apply is a no-op | ✓ |
+| Values replaced via Infisical CLI; unrelated apply (reminder metadata change) left them intact | ✓ |
+| Write-only import (`write-only:<project>:<env>:<path>:<NAME>`) of a CLI-created secret; value not in state; follow-up plan only showed declared metadata | ✓ |
+| S3 backend `use_lockfile = true` against R2 (init/plan/apply, lock acquired and released) | ✓ |
+| Native `infisical_app_connection_github` (pat) and `infisical_app_connection_cloudflare` (api-token) create + Infisical-side validation | ✓ |
+| Railway App Connection via API bridge (`account-token`) | ✓ |

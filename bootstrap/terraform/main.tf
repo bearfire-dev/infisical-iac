@@ -22,6 +22,7 @@ locals {
       TF_PROJECT_R2_SECRET_ACCESS_KEY = "R2 secret key for the project state bucket"
       TF_BACKUP_R2_ACCESS_KEY_ID      = "R2 access key for the state backup bucket"
       TF_BACKUP_R2_SECRET_ACCESS_KEY  = "R2 secret key for the state backup bucket"
+      ALCHEMY_STATE_TOKEN             = "Authenticates bootstrap/alchemy to its Cloudflare-hosted state store; required to re-run pnpm bootstrap:state"
     }
     "/connections" = {
       CLOUDFLARE_API_TOKEN        = "Cloudflare API token for the Cloudflare App Connection (Workers secrets scope)"
