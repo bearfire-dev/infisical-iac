@@ -8,6 +8,7 @@ spec="${1:-}"; [[ -n "$spec" ]] || die "usage: terraform-plan.sh <root-spec> [ar
 shift
 dir="$(resolve_root "$spec")"
 "$REPO_ROOT/scripts/terraform-init.sh" "$spec"
+export_backend_credentials "$(root_state_class "$spec")"
 
 log "terraform plan: $spec"
 set +e

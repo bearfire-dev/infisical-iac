@@ -11,7 +11,7 @@ describe("computeChangedRoots", () => {
       bootstrap: false,
       global: false,
       projects: ["sigla-writer"],
-      matrix: [{ root: "sigla-writer", spec: "project:sigla-writer" }],
+      matrix: [{ root: "projects/sigla-writer", spec: "project:sigla-writer" }],
     });
   });
 
@@ -58,6 +58,9 @@ describe("computeChangedRoots", () => {
   it("--all lists everything, global first", () => {
     const r = allRoots(projects);
     expect(r.bootstrap).toBe(true);
-    expect(r.matrix.map((m) => m.root)).toEqual(["global", ...projects]);
+    expect(r.matrix.map((m) => m.root)).toEqual([
+      "global",
+      ...projects.map((p) => `projects/${p}`),
+    ]);
   });
 });

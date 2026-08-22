@@ -76,3 +76,7 @@ Changed-root rules (`pnpm changed-roots`): `projects/<slug>/**` → that project
 ## Concurrency and locking
 
 R2 S3 backend with `use_lockfile = true` plus `concurrency: infisical-<root>` (`cancel-in-progress: false`) on every privileged job. Two runs on the same root serialize; different roots run in parallel (apply caps at 2).
+
+## Known limitation: plan identity and org-scoped connections
+
+The plan identity is `member` (custom org roles are Infisical Enterprise-only), so it cannot read org-scoped App Connections. The `global` root is therefore planned only on `main` under the apply identity with `production` approval. See `docs/OPERATIONS.md` → "Why the global root is not planned on pull requests".

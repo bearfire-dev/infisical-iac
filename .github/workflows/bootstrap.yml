@@ -37,7 +37,9 @@ jobs:
   bootstrap:
     name: ${{ inputs.apply && 'apply' || 'plan' }} bootstrap
     runs-on: ubuntu-latest
-    environment: bootstrap
+    # Uses the apply identity, whose OIDC binding accepts only the `production`
+    # environment on main (one OIDC auth per identity; a wildcard would widen trust).
+    environment: production
     concurrency:
       group: infisical-bootstrap
       cancel-in-progress: false

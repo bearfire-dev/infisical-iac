@@ -47,10 +47,13 @@ export INFISICAL_ORG_ID=<organization uuid>
 
 ```bash
 pnpm install
-CLOUDFLARE_API_TOKEN=<human dashboard token> CLOUDFLARE_ACCOUNT_ID=<account id> pnpm bootstrap:state
+export CLOUDFLARE_ACCOUNT_ID=<account id>
+export CLOUDFLARE_API_TOKEN=<human dashboard token>     # or CLOUDFLARE_API_KEY=<global key> CLOUDFLARE_EMAIL=<email>
+export ALCHEMY_STATE_TOKEN=$(openssl rand -hex 32)     # first run: generate; later runs: reuse the same value
+pnpm bootstrap:state
 ```
 
-Creates `bearfire-infisical-global-state`, `bearfire-infisical-project-state`, `bearfire-infisical-state-backups` (private; never deleted on destroy). Alchemy's own state lives in Cloudflare.
+Creates `bearfire-infisical-global-state`, `bearfire-infisical-project-state`, `bearfire-infisical-state-backups` (private; never deleted on destroy). Alchemy's own state lives in a Cloudflare Worker/Durable Object it creates on first run; `ALCHEMY_STATE_TOKEN` authenticates to it. Store the token as `ALCHEMY_STATE_TOKEN` in `platform-bootstrap:/terraform-backend` after step 6 so future operators can re-run the stack. (A first-run `404 This Worker does not exist` log line is expected — Alchemy then creates the state Worker.)
 
 ## 4. Three scoped R2 API tokens
 
@@ -132,6 +135,8 @@ gh run watch --repo bearfire-dev/infisical-iac
 ```
 
 Success = the `Authenticate to Infisical (plan identity)` step prints `Authenticated to Infisical as identity ...` and the global plan runs (it will show creates; nothing is applied). Failure modes: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) → OIDC.
+
+> **OIDC subject format.** GitHub issues the immutable subject `repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:<name>`, not the legacy `repo:<owner>/<repo>:environment:<name>`. The bootstrap root binds the immutable form; if a login fails with "OIDC subject not allowed", the auth action logs the presented claims so the binding can be corrected.
 
 ## 9. Global apply
 

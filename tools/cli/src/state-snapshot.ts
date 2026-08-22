@@ -3,10 +3,11 @@
 // bucket under <key-dir>/<timestamp>.tfstate. `prune --retention-days N`
 // deletes backups older than N days. State contents are never printed.
 import {
-  CopyObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
+  PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 import { r2Endpoint } from "./lib/backend.js";
@@ -71,20 +72,23 @@ async function snapshot(root: RootSpec): Promise<void> {
     throw err;
   }
 
-  // CopyObject requires read on the source and write on the destination. The
-  // backup credential class has write access to the backups bucket and read on
-  // the state buckets; if it lacks source read, fall back to the source creds.
+  // Credentials are bucket-scoped by design (no single token can see two
+  // buckets), so a server-side CopyObject is impossible. Read with the source
+  // class credentials and write with the backup credentials; state objects are
+  // small enough to buffer in memory. Contents are never logged.
   const target = backupKey(root);
-  const copy = new CopyObjectCommand({
-    Bucket: BACKUP_STATE_BUCKET,
-    Key: target,
-    CopySource: `/${bucket}/${key}`,
-  });
-  try {
-    await client("TF_BACKUP_R2").send(copy);
-  } catch {
-    await source.send(copy);
-  }
+  const body = await (
+    await source.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
+  ).Body?.transformToByteArray();
+  if (!body || body.length === 0) die(`${spec}: empty state body read from ${bucket}/${key}`);
+  await client("TF_BACKUP_R2").send(
+    new PutObjectCommand({
+      Bucket: BACKUP_STATE_BUCKET,
+      Key: target,
+      Body: body,
+      ContentType: "application/json",
+    }),
+  );
   const head = await client("TF_BACKUP_R2").send(
     new HeadObjectCommand({ Bucket: BACKUP_STATE_BUCKET, Key: target }),
   );

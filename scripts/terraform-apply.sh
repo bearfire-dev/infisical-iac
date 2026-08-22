@@ -6,6 +6,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 spec="${1:-}"; [[ -n "$spec" ]] || die "usage: terraform-apply.sh <root-spec>"
 dir="$(resolve_root "$spec")"
 "$REPO_ROOT/scripts/terraform-init.sh" "$spec"
+export_backend_credentials "$(root_state_class "$spec")"
 
 log "snapshotting state before apply: $spec"
 pnpm --silent state:snapshot "$spec" || die "state snapshot failed; refusing to apply"

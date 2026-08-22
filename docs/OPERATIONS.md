@@ -67,3 +67,24 @@ Dedicated PR (Dependabot opens them, label `provider-upgrade`). Required in the 
 - Infisical: both identities exist, OIDC bindings unchanged (subject, audience, `repository_id`, `repository_owner_id`, `ref` for apply).
 - GitHub environments: `production` and `bootstrap` still require reviewers and `main` only.
 - No repository secrets except (optionally) `GITLEAKS_LICENSE`: `gh secret list`.
+
+## Railway: multiple accounts, one connection
+
+Bearfire deploys to two separate Railway accounts. The single `bearfire-railway` App Connection uses one Railway token that has access to both; which account a sync targets is determined entirely by `destination.project_id` / `environment_id` / `service_id` in the project's `project.yaml`. When rotating `RAILWAY_API_TOKEN`, the new token must again be granted access to **both** accounts or syncs into the second account will start failing (`pnpm sync:status --all` will show it).
+
+## Why the global root is not planned on pull requests
+
+Infisical custom organization roles are Enterprise-only. Without one, the plan identity's org role is `member`, which cannot read org-scoped App Connections, so a Terraform plan of `global/` fails under the plan identity. Granting the plan identity `admin` would let any same-repo pull request read every project's secret values, which is a larger risk than losing PR-time plans for a rarely-changed root.
+
+Current behaviour:
+
+- `plan.yml` skips `global` on pull requests and posts a notice; `ci.yml` still runs `terraform validate` on it.
+- `apply.yml` plans and applies `global` on `main` under the apply identity with `production` approval — the human approving sees the plan summary there.
+- `drift.yml` skips `global`; check it manually with `pnpm plan --global` from an operator shell (`docs/BOOTSTRAP.md` §auth) when App Connections change.
+
+After upgrading to Enterprise:
+
+1. Set `enable_custom_org_roles = true` in the bootstrap root and apply it (the plan identity switches to the `infisical-iac-plan` role).
+2. In `plan.yml`, remove the `pull_request` exclusion of `global` from the matrix.
+3. In `drift.yml`, remove the `global` exclusion **and** make its global plan load the real connection credentials the same way `plan.yml` does (`fetch-connections: true` for the global root instead of the placeholder `TF_VAR_*` values); otherwise the provider will report a false credential diff or fail.
+4. Dispatch `plan.yml` with `root=global` and confirm a no-op plan before relying on drift reports for `global`.

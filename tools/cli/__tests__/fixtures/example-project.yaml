@@ -1,0 +1,80 @@
+# Test fixture: a full project with every sync type. Not a real root.
+schema_version: 1
+
+project:
+  name: Sigla Writer
+  slug: sigla-writer
+  description: Secrets and delivery configuration for Sigla Writer
+
+environments:
+  dev:
+    name: Development
+    position: 1
+  preview:
+    name: Preview
+    position: 2
+  prod:
+    name: Production
+    position: 3
+
+secret_sets:
+  runtime:
+    path: /runtime
+    description: Runtime application secrets
+    secrets:
+      DATABASE_URL:
+        required_in: [dev, preview, prod]
+        comment: Primary application database connection
+      BETTER_AUTH_SECRET:
+        required_in: [dev, preview, prod]
+        comment: Better Auth signing secret
+      STRIPE_SECRET_KEY:
+        required_in: [dev, prod]
+        comment: Stripe server API key
+
+  ci:
+    path: /ci
+    description: CI-only deployment credentials
+    secrets:
+      CLOUDFLARE_API_TOKEN:
+        required_in: [prod]
+        comment: Cloudflare deployment token
+        reminder_days: 90
+
+syncs:
+  prod-runtime-to-railway:
+    type: railway
+    connection: railway
+    source:
+      environment: prod
+      secret_set: runtime
+    destination:
+      project_id: REPLACE_WITH_RAILWAY_PROJECT_ID
+      environment_id: REPLACE_WITH_RAILWAY_ENVIRONMENT_ID
+      service_id: REPLACE_WITH_RAILWAY_SERVICE_ID
+    auto_sync: true
+    manage_deletions: true
+
+  prod-runtime-to-cloudflare:
+    type: cloudflare-workers
+    connection: cloudflare
+    source:
+      environment: prod
+      secret_set: runtime
+    destination:
+      script_id: sigla-writer
+    auto_sync: true
+    manage_deletions: true
+
+  prod-ci-to-github:
+    type: github
+    connection: github
+    source:
+      environment: prod
+      secret_set: ci
+    destination:
+      scope: repository
+      owner: bearfire-dev
+      repository: sigla-writer
+    auto_sync: true
+    manage_deletions: true

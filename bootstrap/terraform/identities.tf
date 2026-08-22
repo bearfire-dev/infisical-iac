@@ -9,7 +9,7 @@
 resource "infisical_identity" "plan" {
   org_id                = var.organization_id
   name                  = "${var.identity_prefix}-plan"
-  role                  = var.plan_identity_org_role
+  role                  = var.enable_custom_org_roles ? infisical_org_role.plan[0].slug : var.plan_identity_org_role
   has_delete_protection = true
 
   metadata = [
@@ -36,6 +36,12 @@ locals {
   github_oidc_issuer = "https://token.actions.githubusercontent.com"
   trusted_ips        = [{ ip_address = "0.0.0.0/0" }, { ip_address = "::/0" }]
 
+  # GitHub's immutable subject format embeds the owner and repository IDs:
+  #   repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:<env>
+  # A rename of the org or repository therefore changes the *name* parts but
+  # the bound IDs still pin trust to this exact repository.
+  github_subject_prefix = "repo:${var.github_owner}@${var.github_owner_id}/${var.github_repository}@${var.github_repository_id}"
+
   base_bound_claims = {
     repository          = local.github_repo
     repository_id       = var.github_repository_id
@@ -48,7 +54,7 @@ resource "infisical_identity_oidc_auth" "plan" {
   bound_issuer       = local.github_oidc_issuer
   oidc_discovery_url = local.github_oidc_issuer
   bound_audiences    = [var.oidc_audience]
-  bound_subject      = "repo:${local.github_repo}:environment:${var.github_plan_environment}"
+  bound_subject      = "${local.github_subject_prefix}:environment:${var.github_plan_environment}"
   bound_claims       = local.base_bound_claims
 
   access_token_ttl            = 1800
@@ -62,7 +68,7 @@ resource "infisical_identity_oidc_auth" "apply" {
   bound_issuer       = local.github_oidc_issuer
   oidc_discovery_url = local.github_oidc_issuer
   bound_audiences    = [var.oidc_audience]
-  bound_subject      = "repo:${local.github_repo}:environment:${var.github_apply_environment}"
+  bound_subject      = "${local.github_subject_prefix}:environment:${var.github_apply_environment}"
   bound_claims = merge(local.base_bound_claims, {
     ref = "refs/heads/${var.github_default_branch}"
   })
@@ -84,4 +90,26 @@ resource "infisical_project_identity" "apply" {
   project_id  = infisical_project.bootstrap.id
   identity_id = infisical_identity.apply.id
   roles       = [{ role_slug = "viewer" }]
+}
+
+# Least-privilege organization role for the plan identity. Project-level reads
+# come from per-project `viewer` membership (granted by the project module);
+# this role only adds what org-scoped resources a plan must read.
+#
+# Custom organization roles require the Infisical Enterprise plan. Until then
+# the plan identity stays `member` (cannot read org-scoped App Connections), so
+# the global root is planned only on main under the apply identity. Set
+# enable_custom_org_roles = true after upgrading to switch to this role.
+resource "infisical_org_role" "plan" {
+  count = var.enable_custom_org_roles ? 1 : 0
+
+  name        = "Infisical IaC plan"
+  slug        = "infisical-iac-plan"
+  description = "Read-only organization access for bearfire-dev/infisical-iac Terraform plans"
+
+  permissions = [
+    { subject = "app-connections", action = ["read"] },
+    { subject = "identity", action = ["read"] },
+    { subject = "role", action = ["read"] },
+  ]
 }

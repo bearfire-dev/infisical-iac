@@ -59,10 +59,23 @@ runs:
         set -euo pipefail
         echo "::add-mask::${OIDC_JWT}"
         host="${INFISICAL_HOST%/}"
+        [[ "$host" == https://* ]] || { echo "::error::INFISICAL_HOST must use https:// (got a non-TLS scheme); refusing to send the OIDC token"; exit 1; }
         body="$(jq -cn --arg id "$IDENTITY_ID" --arg jwt "$OIDC_JWT" '{identityId: $id, jwt: $jwt}')"
-        resp="$(curl -sS --fail-with-body -X POST "${host}/api/v1/auth/oidc-auth/login" \
-          -H 'Content-Type: application/json' -d "$body")" || {
-            echo "::error::Infisical OIDC login failed (identity ${IDENTITY_ID}). Check the identity's OIDC auth binding (subject, audience, repository_id)."; exit 1; }
+        login_out="$(mktemp)"; trap 'rm -f "$login_out"' EXIT
+        if ! code="$(curl -sS -o "$login_out" -w '%{http_code}' -X POST "${host}/api/v1/auth/oidc-auth/login" \
+          -H 'Content-Type: application/json' -d "$body")"; then
+          echo "::error::Infisical OIDC login: transport failure talking to ${host} (curl exit status); no response received"
+          exit 1
+        fi
+        if [[ "$code" != 2* ]]; then
+          # Surface Infisical's error message only (never the JWT or any token).
+          msg="$(jq -r '.message // .error // "no message"' "$login_out" 2>/dev/null || echo 'unparseable body')"
+          # Decode non-secret identity claims from the JWT payload to make binding mismatches diagnosable.
+          claims="$(cut -d. -f2 <<<"$OIDC_JWT" | tr '_-' '/+' | { read -r p; printf '%s' "$p"; while (( ${#p} % 4 )); do printf '='; p="${p}="; done; } | base64 -d 2>/dev/null | jq -c '{sub, aud, repository, repository_id, repository_owner_id, ref, environment, event_name}' 2>/dev/null || echo 'undecodable')"
+          echo "::error::Infisical OIDC login failed (HTTP ${code}, identity ${IDENTITY_ID}): ${msg}. Presented claims: ${claims}"
+          exit 1
+        fi
+        resp="$(cat "$login_out")"
         token="$(jq -r '.accessToken // empty' <<<"$resp")"
         [[ -n "$token" ]] || { echo "::error::Infisical OIDC login returned no accessToken"; exit 1; }
         echo "::add-mask::${token}"
