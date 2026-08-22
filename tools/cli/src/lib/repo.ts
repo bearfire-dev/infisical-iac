@@ -64,9 +64,20 @@ export function formatRootSpec(root: RootSpec): string {
   return root.kind === "project" ? `project:${root.slug}` : root.kind;
 }
 
-/** Short display name used in CI matrices: "global", "bootstrap", or the slug. */
+/**
+ * Repo-relative directory of a root, used as `matrix.root` in CI:
+ * "bootstrap/terraform", "global", or "projects/<slug>". Workflows `chdir`
+ * into it directly and derive concurrency groups / comment headers from it.
+ */
 export function rootName(root: RootSpec): string {
-  return root.kind === "project" ? (root.slug ?? "") : root.kind;
+  switch (root.kind) {
+    case "bootstrap":
+      return "bootstrap/terraform";
+    case "global":
+      return "global";
+    case "project":
+      return `projects/${root.slug ?? ""}`;
+  }
 }
 
 export function rootDir(repoRoot: string, root: RootSpec): string {
