@@ -82,4 +82,9 @@ Current behaviour:
 - `apply.yml` plans and applies `global` on `main` under the apply identity with `production` approval — the human approving sees the plan summary there.
 - `drift.yml` skips `global`; check it manually with `pnpm plan --global` from an operator shell (`docs/BOOTSTRAP.md` §auth) when App Connections change.
 
-After upgrading to Enterprise, set `enable_custom_org_roles = true` in the bootstrap root, apply, and remove the `global` exclusions from `plan.yml` and `drift.yml`.
+After upgrading to Enterprise:
+
+1. Set `enable_custom_org_roles = true` in the bootstrap root and apply it (the plan identity switches to the `infisical-iac-plan` role).
+2. In `plan.yml`, remove the `pull_request` exclusion of `global` from the matrix.
+3. In `drift.yml`, remove the `global` exclusion **and** make its global plan load the real connection credentials the same way `plan.yml` does (`fetch-connections: true` for the global root instead of the placeholder `TF_VAR_*` values); otherwise the provider will report a false credential diff or fail.
+4. Dispatch `plan.yml` with `root=global` and confirm a no-op plan before relying on drift reports for `global`.

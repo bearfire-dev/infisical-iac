@@ -80,7 +80,7 @@ async function snapshot(root: RootSpec): Promise<void> {
   const body = await (
     await source.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
   ).Body?.transformToByteArray();
-  if (!body) die(`${spec}: empty state body read from ${bucket}/${key}`);
+  if (!body || body.length === 0) die(`${spec}: empty state body read from ${bucket}/${key}`);
   await client("TF_BACKUP_R2").send(
     new PutObjectCommand({
       Bucket: BACKUP_STATE_BUCKET,

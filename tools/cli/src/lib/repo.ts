@@ -10,11 +10,10 @@ export const BACKUP_STATE_BUCKET = "bearfire-infisical-state-backups";
 export type RootKind = "bootstrap" | "global" | "project";
 export type StateClass = "global" | "project";
 
-export interface RootSpec {
-  kind: RootKind;
-  /** Project slug; only set for kind === "project". */
-  slug?: string;
-}
+export type RootSpec =
+  | { kind: "bootstrap" }
+  | { kind: "global" }
+  | { kind: "project"; slug: string };
 
 /** Walk upwards from `start` until a package.json is found. */
 export function findRepoRoot(start: string = process.cwd()): string {
@@ -53,9 +52,12 @@ export function projectConfigPath(repoRoot: string, slug: string): string {
 export function parseRootSpec(spec: string): RootSpec {
   if (spec === "bootstrap") return { kind: "bootstrap" };
   if (spec === "global") return { kind: "global" };
-  if (spec.startsWith("project:")) return { kind: "project", slug: spec.slice("project:".length) };
-  if (spec.startsWith("projects/")) {
-    return { kind: "project", slug: spec.slice("projects/".length).replace(/\/+$/, "") };
+  if (spec.startsWith("project:") || spec.startsWith("projects/")) {
+    const slug = spec.replace(/^(project:|projects\/)/, "").replace(/\/+$/, "");
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(slug)) {
+      throw new Error(`invalid project slug '${slug}' in root spec '${spec}'`);
+    }
+    return { kind: "project", slug };
   }
   throw new Error(`unknown root spec '${spec}' (expected bootstrap | global | project:<slug>)`);
 }
@@ -76,7 +78,7 @@ export function rootName(root: RootSpec): string {
     case "global":
       return "global";
     case "project":
-      return `projects/${root.slug ?? ""}`;
+      return `projects/${root.slug}`;
   }
 }
 
@@ -87,7 +89,7 @@ export function rootDir(repoRoot: string, root: RootSpec): string {
     case "global":
       return join(repoRoot, "global");
     case "project":
-      return projectDir(repoRoot, root.slug ?? "");
+      return projectDir(repoRoot, root.slug);
   }
 }
 
@@ -173,5 +175,6 @@ export function selectRoots(
 /** Deterministic ordering: bootstrap, then global, then projects alphabetically. */
 export function sortRoots(roots: RootSpec[]): RootSpec[] {
   const rank = (r: RootSpec) => (r.kind === "bootstrap" ? 0 : r.kind === "global" ? 1 : 2);
-  return [...roots].sort((a, b) => rank(a) - rank(b) || (a.slug ?? "").localeCompare(b.slug ?? ""));
+  const slug = (r: RootSpec) => (r.kind === "project" ? r.slug : "");
+  return [...roots].sort((a, b) => rank(a) - rank(b) || slug(a).localeCompare(slug(b)));
 }
