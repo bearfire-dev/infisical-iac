@@ -60,9 +60,15 @@ runs:
         echo "::add-mask::${OIDC_JWT}"
         host="${INFISICAL_HOST%/}"
         body="$(jq -cn --arg id "$IDENTITY_ID" --arg jwt "$OIDC_JWT" '{identityId: $id, jwt: $jwt}')"
-        resp="$(curl -sS --fail-with-body -X POST "${host}/api/v1/auth/oidc-auth/login" \
-          -H 'Content-Type: application/json' -d "$body")" || {
-            echo "::error::Infisical OIDC login failed (identity ${IDENTITY_ID}). Check the identity's OIDC auth binding (subject, audience, repository_id)."; exit 1; }
+        resp="$(curl -sS -o /tmp/oidc-login.json -w '%{http_code}' -X POST "${host}/api/v1/auth/oidc-auth/login" \
+          -H 'Content-Type: application/json' -d "$body")"
+        if [[ "$resp" != 2* ]]; then
+          # Surface Infisical's error message only (never the JWT or any token).
+          msg="$(jq -r '.message // .error // "no message"' /tmp/oidc-login.json 2>/dev/null || echo 'unparseable body')"
+          echo "::error::Infisical OIDC login failed (HTTP ${resp}, identity ${IDENTITY_ID}): ${msg}. Check the identity's OIDC auth binding (subject, audience, repository_id)."
+          rm -f /tmp/oidc-login.json; exit 1
+        fi
+        resp="$(cat /tmp/oidc-login.json)"; rm -f /tmp/oidc-login.json
         token="$(jq -r '.accessToken // empty' <<<"$resp")"
         [[ -n "$token" ]] || { echo "::error::Infisical OIDC login returned no accessToken"; exit 1; }
         echo "::add-mask::${token}"

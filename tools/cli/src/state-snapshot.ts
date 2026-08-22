@@ -3,11 +3,11 @@
 // bucket under <key-dir>/<timestamp>.tfstate. `prune --retention-days N`
 // deletes backups older than N days. State contents are never printed.
 import {
-  GetObjectCommand,
-  PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
+  PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 import { r2Endpoint } from "./lib/backend.js";
