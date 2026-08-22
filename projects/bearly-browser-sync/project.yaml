@@ -29,32 +29,41 @@ secret_sets:
         required_in: [preview, prod]
         comment: Cloudflare account ID (non-secret, but delivered alongside the token so the workflow contract is unchanged)
 
-# Syncs are enabled in a follow-up PR once the values above are populated in
-# Infisical (docs/MIGRATION.md: never let a placeholder overwrite a working
-# destination). The app repository's workflows read these from the `preview`
-# and `production` GitHub environments, and the repository-level copies.
-syncs: {}
+# Infisical owns these GitHub secrets from here on. The app repository's
+# deploy*.yml / preview.yml read CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID
+# from the `production` / `preview` GitHub environments and the repository level.
+syncs:
+  prod-ci-to-github-repository:
+    type: github
+    connection: github
+    source: { environment: prod, secret_set: ci }
+    destination:
+      scope: repository
+      owner: bearfire-dev
+      repository: bearly-browser-sync
+    auto_sync: true
+    manage_deletions: true
 
-# prod-ci-to-github-production:
-#   type: github
-#   connection: github
-#   source: { environment: prod, secret_set: ci }
-#   destination:
-#     scope: repository-environment
-#     owner: bearfire-dev
-#     repository: bearly-browser-sync
-#     repository_environment: production
-# prod-ci-to-github-repository:
-#   type: github
-#   connection: github
-#   source: { environment: prod, secret_set: ci }
-#   destination: { scope: repository, owner: bearfire-dev, repository: bearly-browser-sync }
-# preview-ci-to-github-preview:
-#   type: github
-#   connection: github
-#   source: { environment: preview, secret_set: ci }
-#   destination:
-#     scope: repository-environment
-#     owner: bearfire-dev
-#     repository: bearly-browser-sync
-#     repository_environment: preview
+  prod-ci-to-github-production:
+    type: github
+    connection: github
+    source: { environment: prod, secret_set: ci }
+    destination:
+      scope: repository-environment
+      owner: bearfire-dev
+      repository: bearly-browser-sync
+      repository_environment: production
+    auto_sync: true
+    manage_deletions: true
+
+  preview-ci-to-github-preview:
+    type: github
+    connection: github
+    source: { environment: preview, secret_set: ci }
+    destination:
+      scope: repository-environment
+      owner: bearfire-dev
+      repository: bearly-browser-sync
+      repository_environment: preview
+    auto_sync: true
+    manage_deletions: true
