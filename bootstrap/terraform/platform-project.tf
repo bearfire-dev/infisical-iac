@@ -1,5 +1,5 @@
 resource "infisical_project" "bootstrap" {
-  name                       = "Platform Bootstrap"
+  name                       = "IaC Secret CICD"
   slug                       = var.bootstrap_project_slug
   description                = "Control-plane credentials for bearfire-dev/infisical-iac. Values are entered by humans; objects are managed by Terraform."
   type                       = "secret-manager"

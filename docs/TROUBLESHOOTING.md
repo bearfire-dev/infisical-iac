@@ -18,7 +18,7 @@ A `platform-bootstrap` value was never entered. Fill it in Infisical (`/terrafor
 
 ## `not found in platform-bootstrap` / 403 reading secrets
 
-The identity lacks membership (bootstrap grants `viewer` on platform-bootstrap). Check Infisical → Platform Bootstrap → Access Control → Machine identities. Plan identity can read `/terraform-backend` only if folder-level policies were not added; we rely on project-level viewer.
+The identity lacks membership (bootstrap grants `viewer` on platform-bootstrap). Check Infisical → IaC Secret CICD → Access Control → Machine identities. Plan identity can read `/terraform-backend` only if folder-level policies were not added; we rely on project-level viewer.
 
 ## Backend init fails
 
