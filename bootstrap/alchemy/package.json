@@ -9,7 +9,7 @@
     "destroy": "tsx alchemy.run.ts --destroy"
   },
   "dependencies": {
-    "alchemy": "^0.76.0"
+    "alchemy": "^0.94.0"
   },
   "devDependencies": {
     "tsx": "^4.20.0"
