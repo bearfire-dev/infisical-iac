@@ -86,14 +86,20 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v3
+      # The gitleaks GitHub Action requires a license stored as a GitHub Secret for
+      # organization repositories. This repository holds no Actions secrets by
+      # design, so the open-source gitleaks binary is run directly instead.
+      - name: Install gitleaks
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Organization-owned repositories require a (free for OSS) gitleaks
-          # license key in GITLEAKS_LICENSE. It is a product license, not a
-          # credential for any system we manage; it is the single permitted
-          # repository secret. See https://github.com/gitleaks/gitleaks-action#usage-for-organizations
-          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          GITLEAKS_VERSION: 8.28.0
+        run: |
+          set -euo pipefail
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tgz
+          tar -xzf /tmp/gitleaks.tgz -C /tmp gitleaks
+          install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+      - name: Scan full git history
+        run: gitleaks git --redact --no-banner --exit-code 1 .
 
   static-guards:
     name: placeholder / literal checks

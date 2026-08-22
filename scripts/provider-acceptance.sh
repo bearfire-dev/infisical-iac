@@ -16,7 +16,6 @@ cp -r "$suite"/. "$work"/
 log "acceptance workdir: $work"
 
 tf() { terraform -chdir="$work" "$@"; }
-export TF_VAR_organization_id="$INFISICAL_ORG_ID"
 export TF_VAR_suffix="${ACCEPTANCE_SUFFIX:-$(date +%s)}"
 
 step() { log "--- $*"; }

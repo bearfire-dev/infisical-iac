@@ -9,7 +9,6 @@ shift
 dir="$(resolve_root "$spec")"
 "$REPO_ROOT/scripts/terraform-init.sh" "$spec"
 
-plan_file="$dir/plan.out"
 log "terraform plan: $spec"
 set +e
 terraform -chdir="$dir" plan -input=false -lock-timeout=120s -out=plan.out -detailed-exitcode "$@"

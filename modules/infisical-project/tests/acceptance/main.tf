@@ -12,7 +12,6 @@ terraform {
 
 provider "infisical" {}
 
-variable "organization_id" { type = string }
 variable "suffix" { type = string }
 variable "metadata_marker" {
   type    = string
