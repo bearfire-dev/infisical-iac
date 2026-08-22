@@ -57,3 +57,19 @@ Observed on the real `bootstrap` root against R2-backed state (not the full `pnp
 | S3 backend `use_lockfile = true` against R2 (init/plan/apply, lock acquired and released) | ✓ |
 | Native `infisical_app_connection_github` (pat) and `infisical_app_connection_cloudflare` (api-token) create + Infisical-side validation | ✓ |
 | Railway App Connection via API bridge (`account-token`) | ✓ |
+
+## Acceptance suite result (2026-08-22)
+
+`pnpm provider:acceptance` — **PASSED** with Terraform 1.13.3 and provider `infisical/infisical` 0.19.24 against a throwaway project (20 write-only secrets).
+
+| Step | Result |
+|---|---|
+| 1 create 20 `value_wo` secrets | ✓ |
+| 2 placeholder absent from state | ✓ |
+| 3 repeat plan no-op | ✓ |
+| 4–5 manual value change via CLI → plan no-op | ✓ |
+| 6 unrelated metadata apply leaves manual value intact | ✓ |
+| 7 write-only import: value not in state | ✓ (see quirk) |
+| 8 destroy | ✓ |
+
+**Known quirk — import reads an empty reminder.** `terraform import 'write-only:…'` populates `secret_reminder = { note = "", repeat_days = 0 }` rather than `null`, so the first plan after import shows one in-place update of that attribute. The reconciliation apply does not touch the value (verified) and the following plan is a no-op. Expect this during migrations (`docs/MIGRATION.md`); it is not a value rewrite.
