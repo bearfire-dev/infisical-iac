@@ -25,7 +25,9 @@ tf() { terraform -chdir="$work" "$@"; }
 expect_noop() {
   local out
   if out="$(tf plan -input=false -no-color -detailed-exitcode 2>&1)"; then return 0; fi
-  printf '%s\n' "$out" | grep -E '^\s*[~+-] |Plan:|will be|must be' | grep -viE 'value' >&2
+  # grep exits 1 on no match; with pipefail that would abort before die.
+  printf '%s\n' "$out" | grep -E '^\s*[~+-] |Plan:|will be|must be' | grep -viE 'value' >&2 \
+    || printf '%s\n' "$out" | grep -viE 'value' >&2 || true
   die "$1"
 }
 export TF_VAR_suffix="${ACCEPTANCE_SUFFIX:-$(date +%s)}"
