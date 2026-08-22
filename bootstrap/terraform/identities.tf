@@ -86,10 +86,13 @@ resource "infisical_project_identity" "plan" {
   roles       = [{ role_slug = "viewer" }]
 }
 
+# The apply identity manages this project's settings, folders, and objects
+# from bootstrap.yml, so it needs project admin (org admin does not override
+# project-level roles). The first grant must come from a human session.
 resource "infisical_project_identity" "apply" {
   project_id  = infisical_project.bootstrap.id
   identity_id = infisical_identity.apply.id
-  roles       = [{ role_slug = "viewer" }]
+  roles       = [{ role_slug = "admin" }]
 }
 
 # Least-privilege organization role for the plan identity. Project-level reads
