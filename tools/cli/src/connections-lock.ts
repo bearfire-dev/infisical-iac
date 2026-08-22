@@ -57,7 +57,17 @@ async function write(): Promise<void> {
   const raw = execFileSync("terraform", ["-chdir=global", "output", "-json", "connections_lock"], {
     cwd: repoRoot,
     encoding: "utf8",
-    env: { ...process.env, PATH: `${process.env.HOME}/.local/bin:${process.env.PATH ?? ""}` },
+    env: {
+      ...process.env,
+      PATH: `${process.env.HOME}/.local/bin:${process.env.PATH ?? ""}`,
+      // The global root's S3 backend needs the sensitive-state credential class.
+      // Mirrors scripts/_lib.sh export_backend_credentials so this works in the
+      // apply job, where only TF_GLOBAL_R2_* are exported.
+      AWS_ACCESS_KEY_ID:
+        process.env.TF_GLOBAL_R2_ACCESS_KEY_ID ?? process.env.AWS_ACCESS_KEY_ID ?? "",
+      AWS_SECRET_ACCESS_KEY:
+        process.env.TF_GLOBAL_R2_SECRET_ACCESS_KEY ?? process.env.AWS_SECRET_ACCESS_KEY ?? "",
+    },
   });
   const next = JSON.parse(raw) as Lock;
 
