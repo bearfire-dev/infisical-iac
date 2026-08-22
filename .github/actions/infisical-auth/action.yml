@@ -65,7 +65,9 @@ runs:
         if [[ "$resp" != 2* ]]; then
           # Surface Infisical's error message only (never the JWT or any token).
           msg="$(jq -r '.message // .error // "no message"' /tmp/oidc-login.json 2>/dev/null || echo 'unparseable body')"
-          echo "::error::Infisical OIDC login failed (HTTP ${resp}, identity ${IDENTITY_ID}): ${msg}. Check the identity's OIDC auth binding (subject, audience, repository_id)."
+          # Decode non-secret identity claims from the JWT payload to make binding mismatches diagnosable.
+          claims="$(cut -d. -f2 <<<"$OIDC_JWT" | tr '_-' '/+' | { read -r p; printf '%s' "$p"; while (( ${#p} % 4 )); do printf '='; p="${p}="; done; } | base64 -d 2>/dev/null | jq -c '{sub, aud, repository, repository_id, repository_owner_id, ref, environment, event_name}' 2>/dev/null || echo 'undecodable')"
+          echo "::error::Infisical OIDC login failed (HTTP ${resp}, identity ${IDENTITY_ID}): ${msg}. Presented claims: ${claims}"
           rm -f /tmp/oidc-login.json; exit 1
         fi
         resp="$(cat /tmp/oidc-login.json)"; rm -f /tmp/oidc-login.json
