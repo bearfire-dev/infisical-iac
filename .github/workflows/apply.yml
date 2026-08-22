@@ -1,0 +1,259 @@
+# Apply on push to main (or manual dispatch). Uses the privileged apply identity
+# through the `production` environment (required reviewers, main only).
+# Order: global first, then every changed project. Bootstrap is never applied
+# here — see bootstrap.yml.
+name: apply
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      root:
+        description: "Root spec to apply (global | project:<slug> | all). Bootstrap is refused."
+        required: true
+        default: all
+        type: string
+      allow_destructive:
+        description: "Approve destructive changes (sets INFISICAL_IAC_DESTRUCTIVE_APPROVED=1 and INFISICAL_BRIDGE_ALLOW_DELETE=1)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  TERRAFORM_VERSION: 1.13.3
+
+jobs:
+  resolve:
+    name: resolve roots and approvals
+    runs-on: ubuntu-latest
+    outputs:
+      global: ${{ steps.roots.outputs.global }}
+      projects: ${{ steps.roots.outputs.projects }}
+      project_count: ${{ steps.roots.outputs.project_count }}
+      destructive_approved: ${{ steps.approval.outputs.approved }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: roots
+        env:
+          BASE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+          ROOT_INPUT: ${{ inputs.root }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            case "$ROOT_INPUT" in
+              all) json="$(pnpm --silent changed-roots --all --json)" ;;
+              global) json='{"global":true,"matrix":[]}' ;;
+              project:*) json="$(jq -cn --arg s "$ROOT_INPUT" '{global: false, matrix: [{root: ("projects/" + ($s | ltrimstr("project:"))), spec: $s}]}')" ;;
+              bootstrap) echo "::error::bootstrap is applied only by bootstrap.yml"; exit 1 ;;
+              *) echo "::error::invalid root '$ROOT_INPUT'"; exit 1 ;;
+            esac
+          else
+            # First push to a new branch has an all-zero `before`; treat as full apply.
+            if [[ "$BASE_SHA" =~ ^0+$ ]]; then json="$(pnpm --silent changed-roots --all --json)"; else json="$(pnpm --silent changed-roots --json)"; fi
+          fi
+          projects="$(jq -c '[.matrix[] | select(.spec | startswith("project:"))]' <<<"$json")"
+          {
+            echo "global=$(jq -r '.global // false' <<<"$json")"
+            echo "projects=$projects"
+            echo "project_count=$(jq 'length' <<<"$projects")"
+          } >> "$GITHUB_OUTPUT"
+          if jq -e '.bootstrap == true' <<<"$json" >/dev/null; then
+            echo "::warning::bootstrap/ changed; it is NOT applied by this workflow. Dispatch bootstrap.yml deliberately."
+          fi
+          echo "global: $(jq -r '.global // false' <<<"$json"); projects: $(jq -r '[.[].spec] | join(", ")' <<<"$projects")"
+      - id: approval
+        name: Destructive-change approval (label on merged PR, or dispatch input)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ALLOW_INPUT: ${{ inputs.allow_destructive }}
+        run: |
+          set -euo pipefail
+          approved=false
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            [[ "$ALLOW_INPUT" == "true" ]] && approved=true
+          else
+            labels="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq '[.[] | select(.merged_at != null) | .labels[].name] | unique | join(",")' || true)"
+            [[ ",${labels}," == *",destructive-change,"* ]] && approved=true
+            echo "merged PR labels: ${labels:-<none>}"
+          fi
+          echo "approved=$approved" >> "$GITHUB_OUTPUT"
+          echo "destructive changes approved: $approved"
+
+  global:
+    name: apply global
+    needs: resolve
+    if: needs.resolve.outputs.global == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: infisical-global
+      cancel-in-progress: false
+    permissions:
+      contents: write # create-pull-request pushes chore/connections-lock
+      id-token: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - name: Authenticate to Infisical (apply identity)
+        uses: ./.github/actions/infisical-auth
+        with:
+          identity-id: ${{ vars.INFISICAL_APPLY_IDENTITY_ID }}
+          audience: ${{ vars.INFISICAL_OIDC_AUDIENCE || 'infisical-iac' }}
+          host: ${{ vars.INFISICAL_HOST || 'https://app.infisical.com' }}
+          bootstrap-project-slug: ${{ vars.INFISICAL_BOOTSTRAP_PROJECT_SLUG || 'platform-bootstrap' }}
+          bootstrap-env: ${{ vars.INFISICAL_BOOTSTRAP_ENV || 'prod' }}
+          state-class: global
+          fetch-connections: "true"
+      - name: terraform apply global
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID }}
+          TF_VAR_organization_id: ${{ vars.INFISICAL_ORG_ID }}
+          TF_VAR_organization_slug: ${{ vars.INFISICAL_ORG_SLUG }}
+          TF_VAR_plan_identity_id: ${{ vars.INFISICAL_PLAN_IDENTITY_ID }}
+          TF_VAR_apply_identity_id: ${{ vars.INFISICAL_APPLY_IDENTITY_ID }}
+          TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          INFISICAL_IAC_DESTRUCTIVE_APPROVED: ${{ needs.resolve.outputs.destructive_approved == 'true' && '1' || '0' }}
+          INFISICAL_BRIDGE_ALLOW_DELETE: ${{ needs.resolve.outputs.destructive_approved == 'true' && '1' || '0' }}
+        run: scripts/terraform-apply.sh global
+      - name: Regenerate connections lock
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          pnpm --silent connections:lock
+          git diff --stat -- global/connections.lock.json || true
+      - name: Open PR if connections.lock.json changed
+        uses: peter-evans/create-pull-request@v8
+        with:
+          add-paths: global/connections.lock.json
+          branch: chore/connections-lock
+          commit-message: "chore(global): refresh connections.lock.json"
+          title: "chore(global): refresh connections.lock.json"
+          body: |
+            Generated by `pnpm connections:lock` after the global apply in run ${{ github.run_id }}.
+            Contains non-secret identifiers only. Review the diff, then merge so project roots pick up the new IDs.
+
+            Note: PRs opened with GITHUB_TOKEN do not trigger `ci`/`plan`; close and reopen, or push an empty commit, to run checks.
+          labels: automated
+          delete-branch: true
+
+  projects:
+    name: apply ${{ matrix.spec }}
+    needs: [resolve, global]
+    # Run when there are projects, even if the global job was skipped (not failed).
+    if: always() && needs.resolve.result == 'success' && needs.global.result != 'failure' && needs.global.result != 'cancelled' && needs.resolve.outputs.project_count != '0'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: infisical-${{ matrix.root }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include: ${{ fromJSON(needs.resolve.outputs.projects) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - name: Authenticate to Infisical (apply identity)
+        uses: ./.github/actions/infisical-auth
+        with:
+          identity-id: ${{ vars.INFISICAL_APPLY_IDENTITY_ID }}
+          audience: ${{ vars.INFISICAL_OIDC_AUDIENCE || 'infisical-iac' }}
+          host: ${{ vars.INFISICAL_HOST || 'https://app.infisical.com' }}
+          bootstrap-project-slug: ${{ vars.INFISICAL_BOOTSTRAP_PROJECT_SLUG || 'platform-bootstrap' }}
+          bootstrap-env: ${{ vars.INFISICAL_BOOTSTRAP_ENV || 'prod' }}
+          state-class: project
+          fetch-connections: "false"
+      - name: Railway bridge token (projects with Railway syncs)
+        # The bridge needs RAILWAY_API_TOKEN only when a Railway sync is created or replaced.
+        # It is read from platform-bootstrap; the plan identity cannot read it, the apply identity can.
+        env:
+          INFISICAL_HOST: ${{ vars.INFISICAL_HOST || 'https://app.infisical.com' }}
+          BOOTSTRAP_SLUG: ${{ vars.INFISICAL_BOOTSTRAP_PROJECT_SLUG || 'platform-bootstrap' }}
+          BOOTSTRAP_ENV: ${{ vars.INFISICAL_BOOTSTRAP_ENV || 'prod' }}
+          ROOT: ${{ matrix.root }}
+        run: |
+          set -euo pipefail
+          grep -q 'type: railway' "$ROOT/project.yaml" || { echo "no Railway syncs declared"; exit 0; }
+          v="$(curl -sS --fail-with-body -G "${INFISICAL_HOST%/}/api/v3/secrets/raw" -H "Authorization: Bearer ${INFISICAL_TOKEN}" \
+                --data-urlencode "workspaceSlug=${BOOTSTRAP_SLUG}" --data-urlencode "environment=${BOOTSTRAP_ENV}" --data-urlencode "secretPath=/connections" \
+              | jq -r '.secrets[] | select(.secretKey == "RAILWAY_API_TOKEN") | .secretValue')"
+          [[ -n "$v" && "$v" != "__REPLACE_IN_INFISICAL__" ]] || { echo "::error::RAILWAY_API_TOKEN missing or placeholder in platform-bootstrap"; exit 1; }
+          echo "::add-mask::$v"; echo "RAILWAY_API_TOKEN=$v" >> "$GITHUB_ENV"
+      - name: terraform apply ${{ matrix.spec }}
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID }}
+          INFISICAL_IAC_DESTRUCTIVE_APPROVED: ${{ needs.resolve.outputs.destructive_approved == 'true' && '1' || '0' }}
+          INFISICAL_BRIDGE_ALLOW_DELETE: ${{ needs.resolve.outputs.destructive_approved == 'true' && '1' || '0' }}
+          SPEC: ${{ matrix.spec }}
+        run: scripts/terraform-apply.sh "$SPEC"
+      - name: secrets:check (placeholders outstanding are reported, not fatal)
+        id: secrets
+        continue-on-error: true
+        env:
+          SLUG: ${{ matrix.spec }}
+        run: |
+          set -o pipefail
+          pnpm --silent secrets:check "${SLUG#project:}" | tee /tmp/secrets-check.txt
+      - name: sync:status
+        id: sync
+        continue-on-error: true
+        env:
+          SLUG: ${{ matrix.spec }}
+        run: |
+          set -o pipefail
+          pnpm --silent sync:status "${SLUG#project:}" | tee /tmp/sync-status.txt
+      - name: Job summary
+        if: always()
+        env:
+          SPEC: ${{ matrix.spec }}
+          SECRETS_OUTCOME: ${{ steps.secrets.outcome }}
+          SYNC_OUTCOME: ${{ steps.sync.outcome }}
+        run: |
+          {
+            echo "## ${SPEC}"
+            echo
+            echo "| check | result |"; echo "|---|---|"
+            echo "| secrets:check | ${SECRETS_OUTCOME} |"
+            echo "| sync:status | ${SYNC_OUTCOME} |"
+            echo
+            echo "<details><summary>secrets:check</summary>"; echo; echo '```'; cat /tmp/secrets-check.txt 2>/dev/null || echo "(no output)"; echo '```'; echo "</details>"
+            echo "<details><summary>sync:status</summary>"; echo; echo '```'; cat /tmp/sync-status.txt 2>/dev/null || echo "(no output)"; echo '```'; echo "</details>"
+            if [[ "$SECRETS_OUTCOME" != "success" ]]; then echo; echo "> Placeholders remain. Replace them in Infisical before merging dependent application changes (docs/ADDING_A_SECRET.md)."; fi
+          } >> "$GITHUB_STEP_SUMMARY"

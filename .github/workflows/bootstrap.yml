@@ -1,0 +1,96 @@
+# Bootstrap root: manual dispatch only. Plans by default; applies only when
+# `apply: true` is given, through the `bootstrap` GitHub environment.
+#
+# CHICKEN AND EGG: this workflow authenticates with the *apply* identity, which
+# the bootstrap root itself creates. The very first bootstrap apply therefore
+# MUST be run locally by a human with a short-lived INFISICAL_TOKEN
+# (docs/BOOTSTRAP.md). After that, use this workflow for subsequent changes
+# to bootstrap/terraform (new placeholder objects, OIDC binding changes, ...).
+#
+# WARNING: a destructive plan here can delete the plan/apply identities or the
+# platform-bootstrap project and lock every other workflow out. Identities carry
+# has_delete_protection = true; read the plan summary before setting `apply`.
+name: bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Apply the bootstrap root (default: plan only)"
+        required: false
+        default: false
+        type: boolean
+      allow_destructive:
+        description: "Approve destructive changes to the bootstrap root (read the plan first!)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TERRAFORM_VERSION: 1.13.3
+
+jobs:
+  bootstrap:
+    name: ${{ inputs.apply && 'apply' || 'plan' }} bootstrap
+    runs-on: ubuntu-latest
+    environment: bootstrap
+    concurrency:
+      group: infisical-bootstrap
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - name: Authenticate to Infisical (apply identity)
+        uses: ./.github/actions/infisical-auth
+        with:
+          identity-id: ${{ vars.INFISICAL_APPLY_IDENTITY_ID }}
+          audience: ${{ vars.INFISICAL_OIDC_AUDIENCE || 'infisical-iac' }}
+          host: ${{ vars.INFISICAL_HOST || 'https://app.infisical.com' }}
+          bootstrap-project-slug: ${{ vars.INFISICAL_BOOTSTRAP_PROJECT_SLUG || 'platform-bootstrap' }}
+          bootstrap-env: ${{ vars.INFISICAL_BOOTSTRAP_ENV || 'prod' }}
+          state-class: global
+          fetch-connections: "false"
+      - name: Bootstrap variables (all non-secret)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo "TF_VAR_organization_id=${{ vars.INFISICAL_ORG_ID }}"
+            echo "TF_VAR_bootstrap_project_slug=${{ vars.INFISICAL_BOOTSTRAP_PROJECT_SLUG || 'platform-bootstrap' }}"
+            echo "TF_VAR_bootstrap_environment=${{ vars.INFISICAL_BOOTSTRAP_ENV || 'prod' }}"
+            echo "TF_VAR_oidc_audience=${{ vars.INFISICAL_OIDC_AUDIENCE || 'infisical-iac' }}"
+            echo "TF_VAR_github_repository_id=${{ github.repository_id }}"
+            echo "TF_VAR_github_owner_id=${{ github.repository_owner_id }}"
+          } >> "$GITHUB_ENV"
+      - name: terraform plan bootstrap
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          scripts/terraform-plan.sh bootstrap
+          terraform -chdir=bootstrap/terraform show -json plan.out > /tmp/plan.json
+          { echo "### Bootstrap plan"; echo; pnpm --silent tsx tools/cli/src/plan-guard.ts --summary < /tmp/plan.json; } >> "$GITHUB_STEP_SUMMARY"
+          rm -f /tmp/plan.json bootstrap/terraform/plan.out
+      - name: terraform apply bootstrap
+        if: inputs.apply
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          INFISICAL_IAC_DESTRUCTIVE_APPROVED: ${{ inputs.allow_destructive && '1' || '0' }}
+        run: |
+          echo "::warning::Applying the bootstrap root. If this changes identity IDs, update the INFISICAL_*_IDENTITY_ID repository variables afterwards (docs/BOOTSTRAP.md)."
+          scripts/terraform-apply.sh bootstrap
+          terraform -chdir=bootstrap/terraform output -json github_variables | jq -r 'to_entries[] | "\(.key)=\(.value)"' > /tmp/github-variables.txt
+          { echo "### GitHub repository variables (non-secret) — compare with \`gh variable list\`"; echo; echo '```'; cat /tmp/github-variables.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

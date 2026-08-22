@@ -1,0 +1,56 @@
+# Daily Terraform state snapshots into the backup bucket, plus retention
+# pruning. Read-only plan identity with all three R2 credential classes.
+# State contents are never logged and never uploaded as artifacts.
+name: state-backup
+
+on:
+  schedule:
+    - cron: "41 3 * * *" # daily 03:41 UTC
+  workflow_dispatch:
+    inputs:
+      retention_days:
+        description: "Delete snapshots older than N days"
+        required: false
+        default: "30"
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: infisical-state-backup
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    name: snapshot all states
+    runs-on: ubuntu-latest
+    environment: terraform-plan
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Authenticate to Infisical (plan identity)
+        uses: ./.github/actions/infisical-auth
+        with:
+          identity-id: ${{ vars.INFISICAL_PLAN_IDENTITY_ID }}
+          audience: ${{ vars.INFISICAL_OIDC_AUDIENCE || 'infisical-iac' }}
+          host: ${{ vars.INFISICAL_HOST || 'https://app.infisical.com' }}
+          bootstrap-project-slug: ${{ vars.INFISICAL_BOOTSTRAP_PROJECT_SLUG || 'platform-bootstrap' }}
+          bootstrap-env: ${{ vars.INFISICAL_BOOTSTRAP_ENV || 'prod' }}
+          state-class: all
+          fetch-connections: "false"
+      - name: Snapshot every state
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm --silent state:snapshot --all
+      - name: Prune old snapshots
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          RETENTION: ${{ inputs.retention_days || '30' }}
+        run: pnpm --silent state:snapshot prune --retention-days "$RETENTION"

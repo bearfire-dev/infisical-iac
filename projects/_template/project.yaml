@@ -1,0 +1,27 @@
+# Template — copied by `pnpm project:new <slug>`. Never contains secret values.
+# yaml-language-server: $schema=../../schemas/project.schema.json
+schema_version: 1
+
+project:
+  name: __PROJECT_NAME__
+  slug: __PROJECT_SLUG__
+  description: Secrets and delivery configuration for __PROJECT_NAME__
+
+environments:
+  dev:
+    name: Development
+    position: 1
+  prod:
+    name: Production
+    position: 2
+
+secret_sets:
+  runtime:
+    path: /runtime
+    description: Runtime application secrets
+    secrets:
+      EXAMPLE_SECRET:
+        required_in: [dev, prod]
+        comment: Replace with the first real secret for this project
+
+syncs: {}

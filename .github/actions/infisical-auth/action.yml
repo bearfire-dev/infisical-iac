@@ -1,0 +1,138 @@
+name: Infisical OIDC auth
+description: >-
+  Exchange the GitHub Actions OIDC token for an Infisical machine-identity access
+  token, export the Terraform provider auth contract, and fetch the Terraform
+  backend (and optionally App Connection) credentials from the platform-bootstrap
+  project. No GitHub Secrets are involved; every value is masked and exported to
+  GITHUB_ENV only. Nothing is ever echoed.
+
+inputs:
+  identity-id:
+    description: Infisical machine identity ID (plan or apply identity).
+    required: true
+  audience:
+    description: OIDC audience bound on the identity (INFISICAL_OIDC_AUDIENCE).
+    required: false
+    default: infisical-iac
+  host:
+    description: Infisical host URL.
+    required: false
+    default: https://app.infisical.com
+  bootstrap-project-slug:
+    description: Slug of the platform-bootstrap Infisical project.
+    required: false
+    default: platform-bootstrap
+  bootstrap-env:
+    description: Environment slug of the platform-bootstrap project.
+    required: false
+    default: prod
+  state-class:
+    description: Which backend credentials to fetch from /terraform-backend — global | project | all.
+    required: false
+    default: project
+  fetch-connections:
+    description: Also fetch /connections (CLOUDFLARE_API_TOKEN, GH_INFISICAL_CONNECTION_PAT, RAILWAY_API_TOKEN) and export them as TF_VAR_* / RAILWAY_API_TOKEN. Apply identity only.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Request GitHub OIDC token
+      id: oidc
+      uses: actions/github-script@v9
+      env:
+        AUDIENCE: ${{ inputs.audience }}
+      with:
+        script: |
+          const jwt = await core.getIDToken(process.env.AUDIENCE);
+          core.setSecret(jwt);
+          core.setOutput('jwt', jwt);
+
+    - name: Exchange OIDC token for an Infisical access token
+      shell: bash
+      env:
+        INFISICAL_HOST: ${{ inputs.host }}
+        IDENTITY_ID: ${{ inputs.identity-id }}
+        OIDC_JWT: ${{ steps.oidc.outputs.jwt }}
+      run: |
+        set -euo pipefail
+        echo "::add-mask::${OIDC_JWT}"
+        host="${INFISICAL_HOST%/}"
+        body="$(jq -cn --arg id "$IDENTITY_ID" --arg jwt "$OIDC_JWT" '{identityId: $id, jwt: $jwt}')"
+        resp="$(curl -sS --fail-with-body -X POST "${host}/api/v1/auth/oidc-auth/login" \
+          -H 'Content-Type: application/json' -d "$body")" || {
+            echo "::error::Infisical OIDC login failed (identity ${IDENTITY_ID}). Check the identity's OIDC auth binding (subject, audience, repository_id)."; exit 1; }
+        token="$(jq -r '.accessToken // empty' <<<"$resp")"
+        [[ -n "$token" ]] || { echo "::error::Infisical OIDC login returned no accessToken"; exit 1; }
+        echo "::add-mask::${token}"
+        {
+          echo "INFISICAL_HOST=${host}"
+          echo "INFISICAL_AUTH_METHOD=oidc"
+          echo "INFISICAL_MACHINE_IDENTITY_ID=${IDENTITY_ID}"
+          # The Terraform provider performs its own OIDC login with the GitHub JWT.
+          echo "INFISICAL_AUTH_JWT=${OIDC_JWT}"
+          # pnpm tools (secrets:check, sync:status, bridge, state:snapshot) use the access token.
+          echo "INFISICAL_TOKEN=${token}"
+        } >> "$GITHUB_ENV"
+        echo "Authenticated to Infisical as identity ${IDENTITY_ID} (ttl $(jq -r '.expiresIn' <<<"$resp")s)"
+
+    - name: Fetch backend and connection credentials from platform-bootstrap
+      shell: bash
+      env:
+        INFISICAL_HOST: ${{ inputs.host }}
+        BOOTSTRAP_SLUG: ${{ inputs.bootstrap-project-slug }}
+        BOOTSTRAP_ENV: ${{ inputs.bootstrap-env }}
+        STATE_CLASS: ${{ inputs.state-class }}
+        FETCH_CONNECTIONS: ${{ inputs.fetch-connections }}
+      run: |
+        set -euo pipefail
+        host="${INFISICAL_HOST%/}"
+        placeholder="__REPLACE_IN_INFISICAL__"
+
+        # fetch_folder <secretPath> -> JSON {KEY: value}
+        fetch_folder() {
+          local path="$1"
+          curl -sS --fail-with-body -G "${host}/api/v3/secrets/raw" \
+            -H "Authorization: Bearer ${INFISICAL_TOKEN}" \
+            --data-urlencode "workspaceSlug=${BOOTSTRAP_SLUG}" \
+            --data-urlencode "environment=${BOOTSTRAP_ENV}" \
+            --data-urlencode "secretPath=${path}" \
+            | jq -c '[.secrets[] | {key: .secretKey, value: .secretValue}] | from_entries' \
+            || { echo "::error::failed to read ${BOOTSTRAP_SLUG}/${BOOTSTRAP_ENV}${path}"; return 1; }
+        }
+
+        # export_secret <json> <KEY> <ENV_NAME>
+        export_secret() {
+          local json="$1" key="$2" name="$3" value
+          value="$(jq -r --arg k "$key" '.[$k] // empty' <<<"$json")"
+          [[ -n "$value" ]] || { echo "::error::${key} not found in platform-bootstrap"; return 1; }
+          [[ "$value" != "$placeholder" ]] || { echo "::error::${key} is still the placeholder; populate it in Infisical (docs/BOOTSTRAP.md step 6)"; return 1; }
+          echo "::add-mask::${value}"
+          echo "${name}=${value}" >> "$GITHUB_ENV"
+        }
+
+        backend="$(fetch_folder /terraform-backend)"
+        case "$STATE_CLASS" in
+          global)  classes="GLOBAL" ;;
+          project) classes="PROJECT" ;;
+          all)     classes="GLOBAL PROJECT BACKUP" ;;
+          *) echo "::error::state-class must be global | project | all"; exit 1 ;;
+        esac
+        for c in $classes; do
+          export_secret "$backend" "TF_${c}_R2_ACCESS_KEY_ID"     "TF_${c}_R2_ACCESS_KEY_ID"
+          export_secret "$backend" "TF_${c}_R2_SECRET_ACCESS_KEY" "TF_${c}_R2_SECRET_ACCESS_KEY"
+        done
+        # Every apply snapshots state first, so the backup credentials travel with global/project too.
+        if [[ "$STATE_CLASS" != "all" ]]; then
+          export_secret "$backend" TF_BACKUP_R2_ACCESS_KEY_ID     TF_BACKUP_R2_ACCESS_KEY_ID
+          export_secret "$backend" TF_BACKUP_R2_SECRET_ACCESS_KEY TF_BACKUP_R2_SECRET_ACCESS_KEY
+        fi
+
+        if [[ "$FETCH_CONNECTIONS" == "true" ]]; then
+          conns="$(fetch_folder /connections)"
+          export_secret "$conns" GH_INFISICAL_CONNECTION_PAT TF_VAR_github_connection_pat
+          export_secret "$conns" CLOUDFLARE_API_TOKEN        TF_VAR_cloudflare_api_token
+          export_secret "$conns" RAILWAY_API_TOKEN           RAILWAY_API_TOKEN
+        fi
+        echo "Exported backend credentials for state class '${STATE_CLASS}' (connections: ${FETCH_CONNECTIONS})"

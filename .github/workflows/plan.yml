@@ -1,0 +1,161 @@
+# Privileged read-only plan for same-repository pull requests and manual runs.
+# Fork pull requests never reach this workflow's jobs (the `if` guard below),
+# so they never obtain an Infisical identity. Plans run only for changed roots.
+name: plan
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      root:
+        description: "Root spec to plan (bootstrap | global | project:<slug> | all)"
+        required: false
+        default: all
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  TERRAFORM_VERSION: 1.13.3
+
+jobs:
+  changes:
+    name: changed roots
+    # Same-repo PRs and manual dispatch only. Fork PRs stop at ci.yml.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.roots.outputs.matrix }}
+      count: ${{ steps.roots.outputs.count }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: roots
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          ROOT_INPUT: ${{ inputs.root }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            case "$ROOT_INPUT" in
+              all) json="$(pnpm --silent changed-roots --all --json)" ;;
+              bootstrap|global) json="$(jq -cn --arg s "$ROOT_INPUT" '{matrix: [{root: (if $s == "bootstrap" then "bootstrap/terraform" else $s end), spec: $s}]}')" ;;
+              project:*) json="$(jq -cn --arg s "$ROOT_INPUT" '{matrix: [{root: ("projects/" + ($s | ltrimstr("project:"))), spec: $s}]}')" ;;
+              *) echo "::error::invalid root '$ROOT_INPUT'"; exit 1 ;;
+            esac
+          else
+            json="$(pnpm --silent changed-roots --json)"
+          fi
+          matrix="$(jq -c '.matrix' <<<"$json")"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "count=$(jq 'length' <<<"$matrix")" >> "$GITHUB_OUTPUT"
+          echo "Roots to plan: $(jq -r '[.[].spec] | join(", ")' <<<"$matrix")"
+
+  plan:
+    name: plan ${{ matrix.spec }}
+    needs: changes
+    if: needs.changes.outputs.count != '0'
+    runs-on: ubuntu-latest
+    environment: terraform-plan
+    concurrency:
+      group: infisical-${{ matrix.root }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.changes.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: State class for this root
+        id: class
+        env:
+          SPEC: ${{ matrix.spec }}
+        run: |
+          case "$SPEC" in bootstrap|global) echo "class=global" ;; *) echo "class=project" ;; esac >> "$GITHUB_OUTPUT"
+
+      - name: Authenticate to Infisical (plan identity)
+        uses: ./.github/actions/infisical-auth
+        with:
+          identity-id: ${{ vars.INFISICAL_PLAN_IDENTITY_ID }}
+          audience: ${{ vars.INFISICAL_OIDC_AUDIENCE || 'infisical-iac' }}
+          host: ${{ vars.INFISICAL_HOST || 'https://app.infisical.com' }}
+          bootstrap-project-slug: ${{ vars.INFISICAL_BOOTSTRAP_PROJECT_SLUG || 'platform-bootstrap' }}
+          bootstrap-env: ${{ vars.INFISICAL_BOOTSTRAP_ENV || 'prod' }}
+          state-class: ${{ steps.class.outputs.class }}
+          # The plan identity is a viewer on platform-bootstrap, so the global root
+          # plans against the real connection credentials (no spurious credential diff).
+          fetch-connections: ${{ steps.class.outputs.class == 'global' }}
+
+      - name: terraform plan
+        id: plan
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID }}
+          # Non-secret TF_VARs the global root needs. Connection credentials are
+          # exported by the infisical-auth step (fetch-connections) for global only.
+          TF_VAR_organization_id: ${{ vars.INFISICAL_ORG_ID }}
+          TF_VAR_organization_slug: ${{ vars.INFISICAL_ORG_SLUG }}
+          TF_VAR_plan_identity_id: ${{ vars.INFISICAL_PLAN_IDENTITY_ID }}
+          TF_VAR_apply_identity_id: ${{ vars.INFISICAL_APPLY_IDENTITY_ID }}
+          TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          TF_VAR_github_repository_id: ${{ github.repository_id }}
+          TF_VAR_github_owner_id: ${{ github.repository_owner_id }}
+          SPEC: ${{ matrix.spec }}
+        run: scripts/terraform-plan.sh "$SPEC" -refresh=true
+
+      - name: Plan summary and destructive-change guard
+        id: guard
+        env:
+          ROOT: ${{ matrix.root }}
+        run: |
+          set -euo pipefail
+          terraform -chdir="$ROOT" show -json plan.out > /tmp/plan.json
+          destructive=false
+          if ! pnpm --silent tsx tools/cli/src/plan-guard.ts < /tmp/plan.json >/dev/null; then destructive=true; fi
+          pnpm --silent tsx tools/cli/src/plan-guard.ts --summary < /tmp/plan.json > /tmp/summary.md
+          rm -f /tmp/plan.json "$ROOT/plan.out"
+          echo "destructive=$destructive" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Plan: \`${ROOT}\`"
+            echo
+            [[ "$destructive" == "true" ]] && echo "> **Destructive changes present.** Requires the \`destructive-change\` label and production approval." && echo
+            cat /tmp/summary.md
+          } | tee -a "$GITHUB_STEP_SUMMARY" > /tmp/comment.md
+
+      - name: Sticky PR comment
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v3.0.5
+        with:
+          header: ${{ matrix.root }}
+          path: /tmp/comment.md
+
+      - name: Fail when destructive without label
+        if: steps.guard.outputs.destructive == 'true' && !(github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'destructive-change'))
+        run: |
+          echo "::error::plan for ${{ matrix.spec }} is destructive; add the destructive-change label after review (docs/PR_SOP.md)"
+          exit 1
+    outputs:
+      destructive: ${{ steps.guard.outputs.destructive }}

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "status": "unbootstrapped",
+  "organization": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "slug": "bearfire"
+  },
+  "identities": {
+    "plan": {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "name": "infisical-iac-github-plan"
+    },
+    "apply": {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "name": "infisical-iac-github-apply"
+    }
+  },
+  "github": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "name": "bearfire-github"
+  },
+  "cloudflare": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "name": "bearfire-cloudflare"
+  },
+  "railway": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "name": "bearfire-railway"
+  },
+  "tags": ["terraform-managed", "rotate-quarterly", "third-party"]
+}

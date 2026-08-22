@@ -1,0 +1,143 @@
+# Daily drift detection. Read-only (plan identity). Plans global and every
+# project with -detailed-exitcode, queries sync health through the bridge and
+# API, and verifies connections.lock.json. Opens or updates ONE issue titled
+# "Drift detected". Never applies anything.
+name: drift
+
+on:
+  schedule:
+    - cron: "17 6 * * *" # daily 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+env:
+  TERRAFORM_VERSION: 1.13.3
+
+concurrency:
+  group: infisical-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    name: detect drift
+    runs-on: ubuntu-latest
+    environment: terraform-plan
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - name: Authenticate to Infisical (plan identity)
+        uses: ./.github/actions/infisical-auth
+        with:
+          identity-id: ${{ vars.INFISICAL_PLAN_IDENTITY_ID }}
+          audience: ${{ vars.INFISICAL_OIDC_AUDIENCE || 'infisical-iac' }}
+          host: ${{ vars.INFISICAL_HOST || 'https://app.infisical.com' }}
+          bootstrap-project-slug: ${{ vars.INFISICAL_BOOTSTRAP_PROJECT_SLUG || 'platform-bootstrap' }}
+          bootstrap-env: ${{ vars.INFISICAL_BOOTSTRAP_ENV || 'prod' }}
+          state-class: all
+          fetch-connections: "false"
+
+      - name: Plan every root (detailed exit code)
+        id: plans
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID }}
+          TF_VAR_organization_id: ${{ vars.INFISICAL_ORG_ID }}
+          TF_VAR_organization_slug: ${{ vars.INFISICAL_ORG_SLUG }}
+          TF_VAR_plan_identity_id: ${{ vars.INFISICAL_PLAN_IDENTITY_ID }}
+          TF_VAR_apply_identity_id: ${{ vars.INFISICAL_APPLY_IDENTITY_ID }}
+          TF_VAR_cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          TF_VAR_github_connection_pat: plan-only-placeholder
+          TF_VAR_cloudflare_api_token: plan-only-placeholder
+        run: |
+          set -uo pipefail
+          : > /tmp/drift-rows.txt
+          drift=false
+          for entry in $(pnpm --silent changed-roots --all --json | jq -r '.matrix[] | select(.spec != "bootstrap") | "\(.spec)|\(.root)"'); do
+            spec="${entry%%|*}"; dir="${entry##*|}"
+            echo "::group::plan $spec"
+            if scripts/terraform-init.sh "$spec" >/dev/null 2>&1; then
+              terraform -chdir="$dir" plan -input=false -lock-timeout=120s -refresh=true -out=plan.out -detailed-exitcode >/dev/null 2>/tmp/plan-err.txt
+              rc=$?
+            else
+              rc=1
+            fi
+            case $rc in
+              0) echo "| \`$spec\` | in sync | — |" >> /tmp/drift-rows.txt ;;
+              2) drift=true
+                 counts="$(terraform -chdir="$dir" show -json plan.out | pnpm --silent tsx tools/cli/src/plan-guard.ts --summary | head -20 | tr '\n' ' ' | cut -c1-300)"
+                 echo "| \`$spec\` | DRIFT | $counts |" >> /tmp/drift-rows.txt ;;
+              *) drift=true; echo "| \`$spec\` | plan FAILED | see run log |" >> /tmp/drift-rows.txt ;;
+            esac
+            rm -f "$dir/plan.out"
+            echo "::endgroup::"
+          done
+          echo "drift=$drift" >> "$GITHUB_OUTPUT"
+
+      - name: sync:status --all
+        id: sync
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          pnpm --silent sync:status --all | tee /tmp/sync-status.txt
+
+      - name: connections:check
+        id: lock
+        continue-on-error: true
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          pnpm --silent connections:check | tee /tmp/connections-check.txt
+
+      - name: Open or update the "Drift detected" issue
+        uses: actions/github-script@v9
+        env:
+          PLAN_DRIFT: ${{ steps.plans.outputs.drift }}
+          SYNC_OUTCOME: ${{ steps.sync.outcome }}
+          LOCK_OUTCOME: ${{ steps.lock.outcome }}
+        with:
+          script: |
+            const fs = require('fs');
+            const read = (p) => { try { return fs.readFileSync(p, 'utf8').trim(); } catch { return '(no output)'; } };
+            const title = 'Drift detected';
+            const anyDrift = process.env.PLAN_DRIFT === 'true' || process.env.SYNC_OUTCOME !== 'success' || process.env.LOCK_OUTCOME !== 'success';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            // Summary contains resource addresses and counts only — never attribute values.
+            const body = [
+              `Automated drift report from [run ${context.runId}](${runUrl}) (${new Date().toISOString()}).`,
+              '', '### Terraform plans', '', '| root | status | summary |', '|---|---|---|', read('/tmp/drift-rows.txt'),
+              '', `### sync:status --all — **${process.env.SYNC_OUTCOME}**`, '', '```', read('/tmp/sync-status.txt'), '```',
+              '', `### connections:check — **${process.env.LOCK_OUTCOME}**`, '', '```', read('/tmp/connections-check.txt'), '```',
+              '', 'Triage: docs/OPERATIONS.md → Drift. Do not apply from this issue; open a PR or fix the destination.',
+            ].join('\n');
+            const { data: issues } = await github.rest.issues.listForRepo({ ...context.repo, state: 'open', labels: 'drift', per_page: 50 });
+            const existing = issues.find((i) => i.title === title);
+            if (anyDrift) {
+              if (existing) {
+                await github.rest.issues.createComment({ ...context.repo, issue_number: existing.number, body });
+                core.warning(`drift persists; updated issue #${existing.number}`);
+              } else {
+                const { data: created } = await github.rest.issues.create({ ...context.repo, title, body, labels: ['drift'] });
+                core.warning(`drift detected; opened issue #${created.number}`);
+              }
+              await core.summary.addRaw(body).write();
+            } else {
+              if (existing) {
+                await github.rest.issues.createComment({ ...context.repo, issue_number: existing.number, body: `Drift resolved as of [run ${context.runId}](${runUrl}). Closing.` });
+                await github.rest.issues.update({ ...context.repo, issue_number: existing.number, state: 'closed' });
+              }
+              await core.summary.addRaw('No drift detected.').write();
+            }

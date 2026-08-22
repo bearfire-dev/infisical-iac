@@ -1,0 +1,12 @@
+# Default owners for everything.
+*                       @slate-rehm
+
+# Control plane: changes here can lock the organization out or widen trust.
+/bootstrap/             @slate-rehm
+/global/                @slate-rehm
+/modules/               @slate-rehm
+/schemas/               @slate-rehm
+/scripts/               @slate-rehm
+/tools/                 @slate-rehm
+/.github/               @slate-rehm
+/SECURITY.md            @slate-rehm

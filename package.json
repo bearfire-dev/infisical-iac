@@ -1,0 +1,46 @@
+{
+  "name": "@bearfire-dev/infisical-iac",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Declarative control plane for Infisical projects, secret objects, identities, App Connections, and Secret Syncs across Bearfire projects.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "validate": "tsx tools/cli/src/validate.ts",
+    "test": "vitest run",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit",
+    "project:new": "tsx tools/cli/src/project-new.ts",
+    "project:validate": "tsx tools/cli/src/validate.ts --project",
+    "project:list": "tsx tools/cli/src/project-list.ts",
+    "changed-roots": "tsx tools/cli/src/changed-roots.ts",
+    "backend-config": "tsx tools/cli/src/backend-config.ts",
+    "plan": "tsx tools/cli/src/terraform.ts plan",
+    "apply": "tsx tools/cli/src/terraform.ts apply",
+    "secrets:check": "tsx tools/cli/src/secrets-check.ts",
+    "sync:status": "tsx tools/cli/src/sync-status.ts",
+    "connections:lock": "tsx tools/cli/src/connections-lock.ts write",
+    "connections:check": "tsx tools/cli/src/connections-lock.ts check",
+    "state:snapshot": "tsx tools/cli/src/state-snapshot.ts",
+    "state:unlock": "tsx tools/cli/src/terraform.ts unlock",
+    "bootstrap:state": "pnpm --filter @bearfire-dev/infisical-iac-bootstrap-state deploy",
+    "infisical:reconcile": "tsx tools/infisical-api-bridge/src/reconcile.ts",
+    "provider:acceptance": "bash scripts/provider-acceptance.sh"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-s3": "^3.864.0",
+    "@biomejs/biome": "^2.2.0",
+    "@types/node": "^24.3.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4",
+    "yaml": "^2.8.0"
+  }
+}

@@ -1,0 +1,17 @@
+# Changelog
+
+All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [SemVer](https://semver.org/).
+
+## [Unreleased]
+
+## [0.1.0] - Unreleased
+
+### Added
+
+- Initial scaffold: bootstrap (Alchemy R2 state buckets, platform-bootstrap project, plan/apply identities with GitHub OIDC), global root (GitHub and Cloudflare App Connections, Railway bridge connection, tag catalogue, `connections.lock.json`), shared `infisical-project` module with write-only placeholder secrets, Railway sync bridge, `projects/_template`, `sigla-writer`, `vex-machina`.
+- TypeScript CLI (`pnpm validate`, `changed-roots`, `backend-config`, `plan`/`apply`, `secrets:check`, `sync:status`, `connections:lock|check`, `state:snapshot`, `plan-guard`) and the Infisical API bridge.
+- GitHub Actions: `ci`, `plan`, `apply`, `bootstrap`, `drift`, `state-backup`; composite `infisical-auth` action (secretless OIDC).
+- Documentation: architecture, bootstrap, runbooks, migration, operations, PR SOP, provider compatibility, state recovery, troubleshooting, security policy.
+
+[Unreleased]: https://github.com/bearfire-dev/infisical-iac/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/bearfire-dev/infisical-iac/releases/tag/v0.1.0

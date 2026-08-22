@@ -1,0 +1,113 @@
+# Unprivileged checks. Runs for every pull request (including forks) and for
+# pushes to main. This workflow never receives an Infisical identity, never
+# touches Terraform state, and needs only read access to the repository.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TERRAFORM_VERSION: 1.13.3
+
+jobs:
+  node:
+    name: validate / lint / typecheck / test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # version read from package.json "packageManager"
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate project.yaml files against schema
+        run: pnpm validate
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  terraform:
+    name: terraform fmt / validate / tflint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - name: terraform fmt
+        run: terraform fmt -check -recursive -diff
+      - name: terraform validate (every root, no backend)
+        run: |
+          set -euo pipefail
+          status=0
+          for dir in bootstrap/terraform global projects/*/; do
+            dir="${dir%/}"
+            [[ -f "$dir/versions.tf" ]] || continue
+            echo "::group::validate $dir"
+            terraform -chdir="$dir" init -backend=false -input=false -no-color >/dev/null
+            terraform -chdir="$dir" validate -no-color || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+      - uses: terraform-linters/setup-tflint@v6
+      - name: tflint
+        run: |
+          tflint --init
+          tflint --recursive --format compact
+
+  lint-workflows:
+    name: actionlint / shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: raven-actions/actionlint@v2
+        with:
+          fail-on-error: true
+      - uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          scandir: ./scripts
+          severity: warning
+
+  secret-scan:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Organization-owned repositories require a (free for OSS) gitleaks
+          # license key in GITLEAKS_LICENSE. It is a product license, not a
+          # credential for any system we manage; it is the single permitted
+          # repository secret. See https://github.com/gitleaks/gitleaks-action#usage-for-organizations
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  static-guards:
+    name: placeholder / literal checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: No committed Terraform state, plans, or generated backend config
+        run: |
+          set -euo pipefail
+          bad="$(git ls-files | grep -E '(\.tfstate(\.backup)?$|plan\.out$|\.tfplan$|backend\.generated\.hcl$|(^|/)[^/]*\.tfvars$)' | grep -v '\.example\.tfvars$' || true)"
+          if [[ -n "$bad" ]]; then echo "::error::forbidden files committed:"; echo "$bad"; exit 1; fi
+      - name: Project roots never read global state
+        run: |
+          set -euo pipefail
+          if grep -rn 'terraform_remote_state' --include='*.tf' projects modules global; then
+            echo "::error::terraform_remote_state is forbidden; use global/connections.lock.json"; exit 1
+          fi

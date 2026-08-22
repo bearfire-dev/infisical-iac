@@ -1,0 +1,50 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, github-actions]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, npm]
+    groups:
+      dev-dependencies:
+        dependency-type: development
+
+  # Terraform provider updates are NEVER auto-merged. Each one is a dedicated
+  # PR that must carry acceptance-suite results (docs/PROVIDER_COMPATIBILITY.md),
+  # all-root plans, a state snapshot, and rollback notes (plan §16).
+  - package-ecosystem: terraform
+    directory: /bootstrap/terraform
+    schedule:
+      interval: weekly
+    labels: [dependencies, terraform, provider-upgrade]
+  - package-ecosystem: terraform
+    directory: /global
+    schedule:
+      interval: weekly
+    labels: [dependencies, terraform, provider-upgrade]
+  - package-ecosystem: terraform
+    directory: /modules/infisical-project
+    schedule:
+      interval: weekly
+    labels: [dependencies, terraform, provider-upgrade]
+  - package-ecosystem: terraform
+    directory: /projects/_template
+    schedule:
+      interval: weekly
+    labels: [dependencies, terraform, provider-upgrade]
+  - package-ecosystem: terraform
+    directory: /projects/sigla-writer
+    schedule:
+      interval: weekly
+    labels: [dependencies, terraform, provider-upgrade]
+  - package-ecosystem: terraform
+    directory: /projects/vex-machina
+    schedule:
+      interval: weekly
+    labels: [dependencies, terraform, provider-upgrade]

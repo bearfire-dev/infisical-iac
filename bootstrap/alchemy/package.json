@@ -1,0 +1,17 @@
+{
+  "name": "@bearfire-dev/infisical-iac-bootstrap-state",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Alchemy stack that provisions the private R2 buckets holding Terraform state for infisical-iac.",
+  "scripts": {
+    "deploy": "tsx alchemy.run.ts",
+    "destroy": "tsx alchemy.run.ts --destroy"
+  },
+  "dependencies": {
+    "alchemy": "^0.76.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0"
+  }
+}

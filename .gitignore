@@ -1,0 +1,47 @@
+# Node
+node_modules/
+*.tsbuildinfo
+
+# Terraform — state, plans, and generated backend config must never be committed
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.plan
+plan.out
+crash.log
+crash.*.log
+**/backend.generated.hcl
+**/*.auto.tfvars
+**/*.tfvars
+!**/*.example.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Secrets / environment — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+.infisical.json
+.infisical-token
+
+# Alchemy local state (Alchemy stores its state in Cloudflare; never here)
+.alchemy/
+
+# Tooling output
+/.out/
+/.tmp/
+coverage/
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
