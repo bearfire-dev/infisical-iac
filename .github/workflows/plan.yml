@@ -82,7 +82,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: terraform-plan
     concurrency:
-      group: infisical-${{ matrix.root }}
+      # Separate from apply's `infisical-<root>` group: an apply waiting for
+      # production approval must not block pull-request plans. Terraform's
+      # backend lockfile still serialises state access.
+      group: infisical-plan-${{ matrix.root }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
