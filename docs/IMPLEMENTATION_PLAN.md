@@ -186,7 +186,7 @@ Applications use the public `@bearfire-dev/env` package for runtime validation. 
 Humans create and rotate real preshared keys. The control plane never generates or rotates a live shared key.
 
 ## 12. Sync-health validation
-`pnpm sync:status <slug> | --all` — for each declared sync: exists, source env/folder match, auto-sync matches, last sync succeeded, connection exists, destination matches declaration. Never retrieves destination values.
+`pnpm sync:status <slug> | --all` — for each declared sync: exists, source env/folder match, auto-sync matches, last sync succeeded, connection ID matches `connections.lock.json`, destination matches declaration. Never retrieves destination values.
 
 ## 13. Bootstrap design
 Manual root of trust is limited to: creating/selecting the Infisical org, a human admin session, Alchemy's Cloudflare auth, the bootstrap apply, and entering initial credential values. Sequence and exact commands: `docs/BOOTSTRAP.md`. Identities: **plan** (read-only, bound to the `terraform-plan` GitHub environment) and **apply** (privileged, bound to the `production` environment on `main`). Subject binding uses immutable `repository_id` / `repository_owner_id` claims plus the `sub` glob.

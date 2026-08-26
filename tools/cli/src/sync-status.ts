@@ -1,5 +1,7 @@
 // `pnpm sync:status [<slug>] [--all]` — compare declared syncs with the live
 // Infisical Secret Syncs (existence, source, auto-sync, last status, connection).
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { requireProjectConfig, type SyncDecl } from "./lib/config.js";
 import { InfisicalClient, type SecretSync } from "./lib/infisical.js";
 import { die, fail, ok, warn } from "./lib/output.js";
@@ -11,6 +13,17 @@ const all = args.includes("--all");
 const slugArg = args.find((a) => !a.startsWith("--"));
 const slugs = all ? listProjectSlugs(repoRoot) : slugArg ? [slugArg] : [];
 if (!slugs.length) die("usage: sync:status <slug> | --all");
+
+function declaredConnectionIds(): Set<string> {
+  const path = join(repoRoot, "global", "connections.lock.json");
+  const lock = JSON.parse(readFileSync(path, "utf8")) as Record<
+    "github" | "cloudflare" | "railway",
+    { id?: string }
+  >;
+  return new Set(
+    [lock.github?.id, lock.cloudflare?.id, lock.railway?.id].filter(Boolean) as string[],
+  );
+}
 
 /** Pure comparison of a declared sync against the remote object. */
 export function compareSync(
@@ -54,7 +67,7 @@ export function compareSync(
 
 async function main(): Promise<void> {
   const client = await InfisicalClient.fromEnv();
-  const connectionIds = new Set((await client.listAppConnections()).map((c) => c.id));
+  const connectionIds = declaredConnectionIds();
   let failures = 0;
 
   for (const slug of slugs) {

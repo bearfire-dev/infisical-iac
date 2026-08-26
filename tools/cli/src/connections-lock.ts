@@ -39,6 +39,7 @@ interface Lock {
 const repoRoot = findRepoRoot();
 const lockPath = join(repoRoot, "global", "connections.lock.json");
 const mode = process.argv[2];
+const offline = process.argv.includes("--offline");
 
 function readLock(): Lock {
   return JSON.parse(readFileSync(lockPath, "utf8")) as Lock;
@@ -118,7 +119,7 @@ async function check(): Promise<void> {
       } else ok(`${label}: ${id}`);
     }
   }
-  if (hasCredentials() && lock.status !== "unbootstrapped") {
+  if (!offline && hasCredentials() && lock.status !== "unbootstrapped") {
     const client = await InfisicalClient.fromEnv();
     const live = new Map((await client.listAppConnections()).map((c) => [c.id, c]));
     for (const key of ["github", "cloudflare", "railway"] as const) {
@@ -132,7 +133,8 @@ async function check(): Promise<void> {
         failures++;
       } else ok(`${key}: connection '${conn.name}' exists`);
     }
-  } else if (!hasCredentials()) warn("no Infisical credentials; skipped live existence check");
+  } else if (offline) warn("offline mode: skipped live App Connection existence check");
+  else if (!hasCredentials()) warn("no Infisical credentials; skipped live existence check");
   if (failures) process.exit(1);
 }
 
