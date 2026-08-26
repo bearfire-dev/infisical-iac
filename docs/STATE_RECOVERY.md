@@ -79,11 +79,3 @@ Finish with `terraform plan -detailed-exitcode` → 0, then `pnpm state:snapshot
 ## 4. Buckets themselves
 
 Alchemy never deletes the buckets (`delete: false`). If a bucket is gone, recreate with `pnpm bootstrap:state` (adopts by name), then restore objects from backups. If the backups bucket is gone, rebuild every state by import.
-
-## Test this
-
-Recovery counts as implemented only after a restore has been exercised on a throwaway project (plan §24). Record the date here:
-
-| Date | Root | Scenario | Result |
-|---|---|---|---|
-| — | — | — | not yet tested |
