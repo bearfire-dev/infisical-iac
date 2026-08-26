@@ -1,6 +1,6 @@
 ---
 name: bearfire-infisical-iac
-description: Set up Bearfire applications to use @bearfire-dev/env with bearfire-dev/infisical-iac, and manage Infisical-delivered variables. Use for project onboarding, additions, renames, rotations, and removals. Do not use for public configuration or application-only validation changes.
+description: Set up Bearfire applications to use @bearfire-dev/env with bearfire-dev/infisical-iac, and manage Infisical-delivered variables. Use for project onboarding, additions, renames, rotations, removals, and application-only validation changes. Do not use for public configuration.
 ---
 
 # Bearfire Infisical IaC
