@@ -1,4 +1,0 @@
-interface:
-  display_name: "Bearfire Infisical IaC"
-  short_description: "Set up typed Infisical environment contracts"
-  default_prompt: "Use $bearfire-infisical-iac to set up this application with typed, Infisical-managed environment variables."
