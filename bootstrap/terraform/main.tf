@@ -11,7 +11,7 @@ provider "infisical" {
 }
 
 locals {
-  legacy_placeholder = "__REPLACE_IN_INFISICAL__"
+  placeholder_prefix = "replace_default_key_"
   github_repo        = "${var.github_owner}/${var.github_repository}"
 
   bootstrap_secrets = {

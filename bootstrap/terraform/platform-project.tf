@@ -47,8 +47,7 @@ resource "infisical_secret" "bootstrap" {
   folder_path  = each.value.path
   name         = each.value.name
 
-  # Migration phase 1: store each suffix before the write-only value uses it.
-  value_wo         = local.legacy_placeholder
+  value_wo         = "${local.placeholder_prefix}${random_bytes.bootstrap_placeholder[each.key].hex}"
   value_wo_version = 1
 
   tag_ids = [infisical_secret_tag.managed.id]

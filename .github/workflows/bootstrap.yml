@@ -101,6 +101,14 @@ jobs:
           scripts/terraform-apply.sh bootstrap
           terraform -chdir=bootstrap/terraform output -json github_variables | jq -r 'to_entries[] | "\(.key)=\(.value)"' > /tmp/github-variables.txt
           { echo "### GitHub repository variables (non-secret) — compare with \`gh variable list\`"; echo; echo '```'; cat /tmp/github-variables.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Install Infisical CLI
+        if: inputs.provider_acceptance
+        run: |
+          curl -1sSfL 'https://artifacts-cli.infisical.com/setup.deb.sh' -o /tmp/setup-infisical.sh
+          sudo -E bash /tmp/setup-infisical.sh
+          rm -f /tmp/setup-infisical.sh
+          sudo apt-get update
+          sudo apt-get install -y infisical
       - name: Provider acceptance
         if: inputs.provider_acceptance
         env:
