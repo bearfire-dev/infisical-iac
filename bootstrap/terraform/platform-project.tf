@@ -47,8 +47,7 @@ resource "infisical_secret" "bootstrap" {
   folder_path  = each.value.path
   name         = each.value.name
 
-  # Migration phase 1: store each suffix before the write-only value uses it.
-  value_wo         = local.legacy_placeholder
+  value_wo         = "${local.placeholder_prefix}${random_bytes.bootstrap_placeholder[each.key].hex}"
   value_wo_version = 1
 
   tag_ids = [infisical_secret_tag.managed.id]
@@ -63,6 +62,12 @@ resource "infisical_secret" "bootstrap" {
   secret_reminder = {
     note        = "Rotate this control-plane credential"
     repeat_days = var.credential_rotation_days
+  }
+
+  lifecycle {
+    # The configured write-only value is relevant on create. Ignore later
+    # expression changes unless value_wo_version explicitly requests a reset.
+    ignore_changes = [value_wo]
   }
 
   depends_on = [infisical_secret_folder.bootstrap]

@@ -17,9 +17,7 @@ resource "infisical_secret" "slot" {
   folder_path  = each.value.path
   name         = each.value.name
 
-  # Migration phase 1: keep the configured value stable while Terraform stores
-  # each random suffix. Phase 2 connects the known suffix after this state exists.
-  value_wo         = local.legacy_placeholder
+  value_wo         = "${local.placeholder_prefix}${random_bytes.placeholder[each.key].hex}"
   value_wo_version = each.value.placeholder_version
 
   tag_ids = [
@@ -40,6 +38,12 @@ resource "infisical_secret" "slot" {
   secret_reminder = each.value.reminder_days == null ? null : {
     note        = "Review or rotate this secret (declared in bearfire-dev/infisical-iac)"
     repeat_days = each.value.reminder_days
+  }
+
+  lifecycle {
+    # The configured write-only value is relevant on create. Ignore later
+    # expression changes unless value_wo_version explicitly requests a reset.
+    ignore_changes = [value_wo]
   }
 
   depends_on = [infisical_secret_folder.this]
