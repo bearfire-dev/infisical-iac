@@ -12,6 +12,16 @@ No secret value ever lives in this repository, in Terraform variables, or in Git
 
 > **Agents:** read [`AGENTS.md`](AGENTS.md) first. It separates *managing a project* (edit one `project.yaml`) from *managing the platform* (modules, global, bootstrap, CI).
 
+## Install the agent skill
+
+Use the [Skills CLI](https://skills.sh) to install the skill globally:
+
+```bash
+bunx skills add bearfire-dev/infisical-iac --skill bearfire-infisical-iac --global
+```
+
+The installer finds the skill in `.agents/skills` and installs it for your selected agents.
+
 ## How it works
 
 1. Declare a project in `projects/<slug>/project.yaml` — environments, secret sets (= Infisical folders), secret names, and syncs.
