@@ -70,7 +70,7 @@ No GitHub Actions secret exists in this repository (the optional `GITLEAKS_LICEN
 | `plan.yml` | same-repo PR, dispatch | plan | changed roots only; sticky comment per root; fails on destructive plan without label |
 | `apply.yml` | push main, dispatch | apply | global → projects; snapshot → fresh plan → apply; `secrets:check`, `sync:status`; lock-file PR |
 | `bootstrap.yml` | dispatch | apply | plan bootstrap; apply only with `apply: true` |
-| `drift.yml` | daily, dispatch | plan | plan all roots, `sync:status --all`, `connections:check` → single issue |
+| `drift.yml` | daily, dispatch | plan | plan project roots, `sync:status --all`, offline lock check → single issue |
 | `state-backup.yml` | daily, dispatch | plan (all R2 classes) | `state:snapshot --all`, prune 30 days |
 
 Changed-root rules (`pnpm changed-roots`): `projects/<slug>/**` → that project; `global/**` → global; `bootstrap/**` → bootstrap; `modules/**`, `schemas/**`, `tools/**`, `scripts/**` → every project; `docs/**` → nothing.

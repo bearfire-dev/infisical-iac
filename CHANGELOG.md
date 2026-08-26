@@ -12,6 +12,7 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 - The provider compatibility document now shows one acceptance result.
 - The bootstrap workflow can install the Infisical CLI and run provider acceptance with its OIDC identity.
 - Terraform ignores write-only placeholder expression changes after creation unless `placeholder_version` requests a reset.
+- Drift checks now use project-scoped APIs and locked connection IDs, so the restricted plan identity does not require organization App Connection access.
 
 ## [0.1.0] - Unreleased
 

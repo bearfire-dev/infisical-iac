@@ -21,17 +21,20 @@ Routine tasks, in order of frequency. Commands assume a local shell with `INFISI
 | Terraform `DRIFT` | Infisical differs from Git (object deleted/renamed/edited in UI, or lock changed) | Fix in Git (PR) or revert in Infisical. Never apply from the issue. |
 | Terraform `plan FAILED` | auth, backend, or lock problem | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) |
 | `sync:status` failure | sync missing, auto-sync off, last sync failed, destination mismatch | Re-trigger in Infisical UI; if destination credential expired, rotate (below) |
-| `connections:check` failure | `connections.lock.json` stale | merge the open `chore/connections-lock` PR or run `pnpm connections:lock` after `source scripts/local-auth.sh global` |
+| `connections:check --offline` failure | `connections.lock.json` has unresolved metadata | Merge the open `chore/connections-lock` PR or run `pnpm connections:lock` after `source scripts/local-auth.sh global`. |
 
 The issue auto-closes on the next clean run.
 
+The plan identity cannot read organization-scoped App Connections. Scheduled drift uses the IDs in `connections.lock.json` to validate each sync connection. It checks the lock file without a live App Connection query. Use authenticated `pnpm connections:check` after an App Connection change to verify live existence and names.
+
 ## Rotation of control-plane credentials
 
-All nine live in `platform-bootstrap/prod` and carry reminders. Rotate value-in-place; no Terraform change except Railway.
+All 10 live in `platform-bootstrap/prod` and carry reminders. Rotate each value in place. Railway is the only rotation that needs a Terraform change.
 
 | Credential | Where to create | After updating in Infisical |
 |---|---|---|
 | `TF_*_R2_*` (3 pairs) | Cloudflare R2 API tokens | next workflow run picks it up; delete the old token |
+| `ALCHEMY_STATE_TOKEN` | Alchemy state store | next `pnpm bootstrap:state` run uses it; revoke the old token |
 | `GH_INFISICAL_CONNECTION_PAT` | GitHub fine-grained PAT | `gh workflow run apply.yml -f root=global` (provider re-submits credential) |
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API tokens | same as above |
 | `RAILWAY_API_TOKEN` | Railway tokens | bump `railway_credential_version` in `global/variables.tf` via PR → bridge re-submits |
