@@ -84,7 +84,7 @@ export TF_GLOBAL_R2_ACCESS_KEY_ID=... TF_GLOBAL_R2_SECRET_ACCESS_KEY=...
 export TF_BACKUP_R2_ACCESS_KEY_ID=... TF_BACKUP_R2_SECRET_ACCESS_KEY=...
 export CLOUDFLARE_ACCOUNT_ID=<account id>
 
-scripts/terraform-plan.sh bootstrap      # review: 2 identities, 2 OIDC auths, project, env, 2 folders, tag, 9 secrets
+scripts/terraform-plan.sh bootstrap      # review: 2 identities, 2 OIDC auths, project, env, 2 folders, tag, 10 secrets
 scripts/terraform-apply.sh bootstrap
 terraform -chdir=bootstrap/terraform output github_variables
 terraform -chdir=bootstrap/terraform output -raw bootstrap_project_id
@@ -154,9 +154,11 @@ Local alternative: `source scripts/local-auth.sh global && scripts/terraform-app
 ## 10. Cleanup
 
 ```bash
-unset INFISICAL_TOKEN TF_GLOBAL_R2_ACCESS_KEY_ID TF_GLOBAL_R2_SECRET_ACCESS_KEY TF_BACKUP_R2_ACCESS_KEY_ID TF_BACKUP_R2_SECRET_ACCESS_KEY
+unset INFISICAL_TOKEN ALCHEMY_STATE_TOKEN CLOUDFLARE_API_TOKEN CLOUDFLARE_API_KEY CLOUDFLARE_EMAIL
+unset TF_GLOBAL_R2_ACCESS_KEY_ID TF_GLOBAL_R2_SECRET_ACCESS_KEY TF_PROJECT_R2_ACCESS_KEY_ID TF_PROJECT_R2_SECRET_ACCESS_KEY
+unset TF_BACKUP_R2_ACCESS_KEY_ID TF_BACKUP_R2_SECRET_ACCESS_KEY
 rm -f bootstrap/terraform/bootstrap.auto.tfvars bootstrap/terraform/backend.generated.hcl
 history -c   # if any value was ever typed inline
 ```
 
-Revoke the human Infisical token. Delete the local copies of the R2 tokens from step 4. From now on `bootstrap.yml` (dispatch, `bootstrap` environment) handles bootstrap changes; the only recurring manual task is rotating the nine values on the reminder schedule ([OPERATIONS.md](OPERATIONS.md)).
+Revoke the human Infisical token. Delete the local copies of the R2 tokens from step 4. From now on, `bootstrap.yml` handles bootstrap changes through the `production` environment. The only recurring manual task is rotation of the 10 values on the reminder schedule ([OPERATIONS.md](OPERATIONS.md)).

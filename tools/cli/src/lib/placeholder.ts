@@ -9,5 +9,13 @@ export function isPlaceholder(value: unknown): boolean {
   );
 }
 
+export function isCanonicalPlaceholder(value: unknown): boolean {
+  if (value === LEGACY_PLACEHOLDER) return true;
+  if (typeof value !== "string" || !value.startsWith(PLACEHOLDER_PREFIX)) return false;
+
+  const suffix = value.slice(PLACEHOLDER_PREFIX.length);
+  return suffix.length === PLACEHOLDER_HEX_LENGTH && /^[0-9a-f]+$/i.test(suffix);
+}
+
 /** Markers used in project.yaml for IDs humans must fill in (never secrets). */
 export const REPLACE_MARKER_PREFIX = "REPLACE_WITH_";

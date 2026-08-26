@@ -1,6 +1,11 @@
 // Secret-like literal detection. Fixture values are synthetic patterns, not real credentials.
 import { describe, expect, it } from "vitest";
-import { isPlaceholder, LEGACY_PLACEHOLDER, PLACEHOLDER_PREFIX } from "../src/lib/placeholder.js";
+import {
+  isCanonicalPlaceholder,
+  isPlaceholder,
+  LEGACY_PLACEHOLDER,
+  PLACEHOLDER_PREFIX,
+} from "../src/lib/placeholder.js";
 import { scanText, shouldScan } from "../src/lib/secret-scan.js";
 
 const fake = (prefix: string, n: number, ch = "A") => prefix + ch.repeat(n);
@@ -22,6 +27,14 @@ describe("scanText", () => {
     expect(isPlaceholder(`${PLACEHOLDER_PREFIX}not-hex`)).toBe(true);
     expect(isPlaceholder(LEGACY_PLACEHOLDER)).toBe(true);
     expect(isPlaceholder("real-secret")).toBe(false);
+  });
+
+  it("allowlists only canonical placeholder literals", () => {
+    expect(isCanonicalPlaceholder(`${PLACEHOLDER_PREFIX}${"a".repeat(256)}`)).toBe(true);
+    expect(isCanonicalPlaceholder(LEGACY_PLACEHOLDER)).toBe(true);
+    expect(isCanonicalPlaceholder(PLACEHOLDER_PREFIX)).toBe(false);
+    expect(isCanonicalPlaceholder(`${PLACEHOLDER_PREFIX}not-hex`)).toBe(false);
+    expect(isCanonicalPlaceholder(`${PLACEHOLDER_PREFIX}${"a".repeat(257)}`)).toBe(false);
   });
 
   it("flags AWS and GitHub tokens", () => {

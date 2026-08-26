@@ -37,7 +37,10 @@ Email security@bearfire.dev (or open a GitHub private vulnerability report on th
 
 ## Incident response: leaked bootstrap credential
 
-Applies to any of the nine `platform-bootstrap` values, the Infisical identities, or a human token used for bootstrap.
+Applies to any of the 10 `platform-bootstrap` values, the Infisical identities, or a human bootstrap token.
+
+- `/terraform-backend`: six R2 credentials and `ALCHEMY_STATE_TOKEN`
+- `/connections`: `GH_INFISICAL_CONNECTION_PAT`, `CLOUDFLARE_API_TOKEN`, and `RAILWAY_API_TOKEN`
 
 1. **Revoke at the source first** (Cloudflare R2 token / GitHub PAT / Cloudflare API token / Railway token / Infisical token). The placeholder objects and reminders make the inventory explicit: `bootstrap/terraform/main.tf`.
 2. Issue a replacement; update the value in Infisical (`platform-bootstrap/prod`). For `RAILWAY_API_TOKEN`, bump `railway_credential_version` and apply global; for the GitHub/Cloudflare tokens, apply global so the provider re-submits the connection credential.
