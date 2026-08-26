@@ -66,6 +66,10 @@ jobs:
           TF_VAR_cloudflare_api_token: plan-only-placeholder
         run: |
           set -uo pipefail
+          : "${TF_PROJECT_R2_ACCESS_KEY_ID:?missing project-state access key}"
+          : "${TF_PROJECT_R2_SECRET_ACCESS_KEY:?missing project-state secret key}"
+          export AWS_ACCESS_KEY_ID="$TF_PROJECT_R2_ACCESS_KEY_ID"
+          export AWS_SECRET_ACCESS_KEY="$TF_PROJECT_R2_SECRET_ACCESS_KEY"
           : > /tmp/drift-rows.txt
           drift=false
           for entry in $(pnpm --silent changed-roots --all --json | jq -r '.matrix[] | select(.spec != "bootstrap" and .spec != "global") | "\(.spec)|\(.root)"'); do
