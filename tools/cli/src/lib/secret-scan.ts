@@ -1,6 +1,6 @@
 // Detection of literal secret-like values in committed text (yaml/tf/json/md).
 // Pure functions; used by validate.ts and unit tests.
-import { PLACEHOLDER, REPLACE_MARKER_PREFIX } from "./placeholder.js";
+import { isCanonicalPlaceholder, REPLACE_MARKER_PREFIX } from "./placeholder.js";
 
 export interface SecretFinding {
   line: number;
@@ -39,7 +39,7 @@ const RULES: Rule[] = [
 
 /** Values that look like secrets but are known-safe markers. */
 export function isAllowlisted(value: string): boolean {
-  if (value === PLACEHOLDER) return true;
+  if (isCanonicalPlaceholder(value)) return true;
   if (value.startsWith(REPLACE_MARKER_PREFIX)) return true;
   if (value.startsWith("__") && value.endsWith("__")) return true;
   if (/^\$\{?[A-Z_]+\}?$/.test(value)) return true; // ${VAR} / $VAR references
@@ -74,7 +74,7 @@ export function scanText(text: string): SecretFinding[] {
         const allowed =
           rule.name === "generic-assignment"
             ? isAllowlisted(value)
-            : value === PLACEHOLDER || value.startsWith(REPLACE_MARKER_PREFIX);
+            : isCanonicalPlaceholder(value) || value.startsWith(REPLACE_MARKER_PREFIX);
         if (!allowed && !reported.has(value)) {
           reported.add(value);
           findings.push({

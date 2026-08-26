@@ -101,7 +101,8 @@ runs:
       run: |
         set -euo pipefail
         host="${INFISICAL_HOST%/}"
-        placeholder="__REPLACE_IN_INFISICAL__"
+        legacy_placeholder="__REPLACE_IN_INFISICAL__"
+        placeholder_prefix="replace_default_key_"
 
         # fetch_folder <secretPath> -> JSON {KEY: value}
         fetch_folder() {
@@ -120,7 +121,7 @@ runs:
           local json="$1" key="$2" name="$3" value
           value="$(jq -r --arg k "$key" '.[$k] // empty' <<<"$json")"
           [[ -n "$value" ]] || { echo "::error::${key} not found in platform-bootstrap"; return 1; }
-          [[ "$value" != "$placeholder" ]] || { echo "::error::${key} is still the placeholder; populate it in Infisical (docs/BOOTSTRAP.md step 6)"; return 1; }
+          [[ "$value" != "$legacy_placeholder" && "$value" != "$placeholder_prefix"* ]] || { echo "::error::${key} is still a placeholder. Populate it in Infisical (docs/BOOTSTRAP.md step 6)."; return 1; }
           echo "::add-mask::${value}"
           echo "${name}=${value}" >> "$GITHUB_ENV"
         }

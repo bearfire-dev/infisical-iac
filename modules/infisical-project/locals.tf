@@ -5,6 +5,8 @@ locals {
   syncs        = try(var.config.syncs, {})
   identities   = try(var.config.identities, {})
 
+  legacy_placeholder = "__REPLACE_IN_INFISICAL__"
+
   # ---------------------------------------------------------------------------
   # Secret slots: one Infisical secret object per (environment, secret set, name).
   # Keys are stable, human-readable identities: "<env>:<path>:<NAME>".

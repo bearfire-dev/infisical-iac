@@ -4,7 +4,7 @@
 import { expandSlots, requireProjectConfig, type SecretSlot } from "./lib/config.js";
 import { InfisicalClient } from "./lib/infisical.js";
 import { die, fail, ok } from "./lib/output.js";
-import { PLACEHOLDER } from "./lib/placeholder.js";
+import { isPlaceholder } from "./lib/placeholder.js";
 import { findRepoRoot, listProjectSlugs, projectConfigPath } from "./lib/repo.js";
 
 const args = process.argv.slice(2);
@@ -28,7 +28,7 @@ export function classifySlots(
     const entries = listed.get(`${slot.environment}:${slot.path}`) ?? [];
     const hit = entries.find((e) => e.key === slot.name);
     if (!hit) out.set(slot.key, "missing");
-    else if (hit.value === PLACEHOLDER || hit.value === "") out.set(slot.key, "placeholder");
+    else if (isPlaceholder(hit.value) || hit.value === "") out.set(slot.key, "placeholder");
     else out.set(slot.key, "ok");
   }
   return out;

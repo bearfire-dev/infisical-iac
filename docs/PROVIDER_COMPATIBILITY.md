@@ -32,13 +32,7 @@ Plan §16. Pins: Terraform `>= 1.11.0, < 2.0.0` (CI: **1.13.3**), provider `infi
 
 Run: `INFISICAL_HOST=… INFISICAL_TOKEN=… INFISICAL_ORG_ID=… pnpm provider:acceptance`.
 
-## Results
-
-**Status: NOT YET RUN.** Fill one row per (Terraform, provider) pair before relying on it in production.
-
-| Date | Terraform | Provider | R2 `use_lockfile` verified | Steps passed | Operator | Notes |
-|---|---|---|---|---|---|---|
-| — | 1.13.3 | 0.19.24 | — | — | — | pending |
+For the live control plane, dispatch `bootstrap.yml` with `provider_acceptance: true`. The workflow uses the apply identity through the production environment.
 
 ## Failure policy
 
@@ -46,7 +40,7 @@ Any step fails → stop the rollout, document here, test the last known-good pai
 
 ## Evidence from bootstrap (2026-08-22, Terraform 1.13.3, provider 0.19.24)
 
-Observed on the real `bootstrap` root against R2-backed state (not the full `pnpm provider:acceptance` suite, which is still pending):
+Observed on the real `bootstrap` root against R2-backed state:
 
 | Check | Result |
 |---|---|

@@ -31,8 +31,14 @@ resource "infisical_secret_tag" "managed" {
   color      = "#6b7280"
 }
 
-# Placeholder objects. Values are write-only and never in state. Humans replace
-# them in Infisical after the first apply (docs/BOOTSTRAP.md step 6).
+resource "random_bytes" "bootstrap_placeholder" {
+  for_each = local.bootstrap_secret_slots
+
+  length = 128
+}
+
+# Placeholder objects. Random suffixes remain in private bootstrap state. The
+# prefixed values are write-only. Humans replace them after the first apply.
 resource "infisical_secret" "bootstrap" {
   for_each = local.bootstrap_secret_slots
 
@@ -41,7 +47,8 @@ resource "infisical_secret" "bootstrap" {
   folder_path  = each.value.path
   name         = each.value.name
 
-  value_wo         = local.placeholder
+  # Migration phase 1: store each suffix before the write-only value uses it.
+  value_wo         = local.legacy_placeholder
   value_wo_version = 1
 
   tag_ids = [infisical_secret_tag.managed.id]

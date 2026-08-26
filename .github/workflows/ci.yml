@@ -21,7 +21,7 @@ env:
 jobs:
   node:
     name: validate / lint / typecheck / test
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6 # version read from package.json "packageManager"
@@ -38,7 +38,7 @@ jobs:
 
   terraform:
     name: terraform fmt / validate / tflint
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v7
       - uses: hashicorp/setup-terraform@v4
@@ -68,7 +68,7 @@ jobs:
 
   lint-workflows:
     name: actionlint / shellcheck
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v7
       - uses: raven-actions/actionlint@v2
@@ -81,7 +81,7 @@ jobs:
 
   secret-scan:
     name: gitleaks
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v7
         with:
@@ -103,7 +103,7 @@ jobs:
 
   static-guards:
     name: placeholder / literal checks
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v7
       - name: No committed Terraform state, plans, or generated backend config

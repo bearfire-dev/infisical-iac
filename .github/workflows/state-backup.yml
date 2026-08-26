@@ -25,7 +25,7 @@ concurrency:
 jobs:
   snapshot:
     name: snapshot all states
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     environment: terraform-plan
     steps:
       - uses: actions/checkout@v7
@@ -53,4 +53,4 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           RETENTION: ${{ inputs.retention_days || '30' }}
-        run: pnpm --silent state:snapshot prune --retention-days "$RETENTION"
+        run: pnpm --silent state:snapshot prune --retention-days "$RETENTION" --all

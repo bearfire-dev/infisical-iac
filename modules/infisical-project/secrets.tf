@@ -1,7 +1,14 @@
-# One secret object per slot. The value is write-only: the placeholder is sent
-# on create (and whenever value_wo_version changes) but is never stored in state.
+# One secret object per slot. The random suffix is stored in private project
+# state. The prefixed placeholder is write-only and is never stored as a secret
+# value in state.
 # Humans replace the placeholder in Infisical; Terraform does not see or touch
 # the live value on subsequent applies unless value_wo_version is incremented.
+resource "random_bytes" "placeholder" {
+  for_each = local.secret_slots
+
+  length = 128
+}
+
 resource "infisical_secret" "slot" {
   for_each = local.secret_slots
 
@@ -10,7 +17,9 @@ resource "infisical_secret" "slot" {
   folder_path  = each.value.path
   name         = each.value.name
 
-  value_wo         = var.placeholder_value
+  # Migration phase 1: keep the configured value stable while Terraform stores
+  # each random suffix. Phase 2 connects the known suffix after this state exists.
+  value_wo         = local.legacy_placeholder
   value_wo_version = each.value.placeholder_version
 
   tag_ids = [
@@ -34,12 +43,4 @@ resource "infisical_secret" "slot" {
   }
 
   depends_on = [infisical_secret_folder.this]
-
-  lifecycle {
-    # Guard: the placeholder constant is the only value Terraform ever writes.
-    precondition {
-      condition     = var.placeholder_value == "__REPLACE_IN_INFISICAL__"
-      error_message = "placeholder_value must be the canonical constant __REPLACE_IN_INFISICAL__."
-    }
-  }
 }

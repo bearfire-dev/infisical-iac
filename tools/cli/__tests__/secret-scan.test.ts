@@ -1,6 +1,11 @@
 // Secret-like literal detection. Fixture values are synthetic patterns, not real credentials.
 import { describe, expect, it } from "vitest";
-import { PLACEHOLDER } from "../src/lib/placeholder.js";
+import {
+  isCanonicalPlaceholder,
+  isPlaceholder,
+  LEGACY_PLACEHOLDER,
+  PLACEHOLDER_PREFIX,
+} from "../src/lib/placeholder.js";
 import { scanText, shouldScan } from "../src/lib/secret-scan.js";
 
 const fake = (prefix: string, n: number, ch = "A") => prefix + ch.repeat(n);
@@ -8,12 +13,28 @@ const fake = (prefix: string, n: number, ch = "A") => prefix + ch.repeat(n);
 describe("scanText", () => {
   it("allows the placeholder and REPLACE_WITH markers", () => {
     const text = [
-      `value_wo = "${PLACEHOLDER}"`,
+      `value_wo = "${PLACEHOLDER_PREFIX}${"a".repeat(256)}"`,
       "project_id: REPLACE_WITH_RAILWAY_PROJECT_ID",
       "  token: $RAILWAY_API_TOKEN",
       "password = var.cloudflare_api_token",
     ].join("\n");
     expect(scanText(text)).toEqual([]);
+  });
+
+  it("recognizes current and legacy placeholders", () => {
+    expect(isPlaceholder(`${PLACEHOLDER_PREFIX}${"a".repeat(256)}`)).toBe(true);
+    expect(isPlaceholder(PLACEHOLDER_PREFIX)).toBe(true);
+    expect(isPlaceholder(`${PLACEHOLDER_PREFIX}not-hex`)).toBe(true);
+    expect(isPlaceholder(LEGACY_PLACEHOLDER)).toBe(true);
+    expect(isPlaceholder("real-secret")).toBe(false);
+  });
+
+  it("allowlists only canonical placeholder literals", () => {
+    expect(isCanonicalPlaceholder(`${PLACEHOLDER_PREFIX}${"a".repeat(256)}`)).toBe(true);
+    expect(isCanonicalPlaceholder(LEGACY_PLACEHOLDER)).toBe(true);
+    expect(isCanonicalPlaceholder(PLACEHOLDER_PREFIX)).toBe(false);
+    expect(isCanonicalPlaceholder(`${PLACEHOLDER_PREFIX}not-hex`)).toBe(false);
+    expect(isCanonicalPlaceholder(`${PLACEHOLDER_PREFIX}${"a".repeat(257)}`)).toBe(false);
   });
 
   it("flags AWS and GitHub tokens", () => {

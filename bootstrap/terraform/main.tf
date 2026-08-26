@@ -11,8 +11,8 @@ provider "infisical" {
 }
 
 locals {
-  placeholder = "__REPLACE_IN_INFISICAL__"
-  github_repo = "${var.github_owner}/${var.github_repository}"
+  legacy_placeholder = "__REPLACE_IN_INFISICAL__"
+  github_repo        = "${var.github_owner}/${var.github_repository}"
 
   bootstrap_secrets = {
     "/terraform-backend" = {

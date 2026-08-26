@@ -37,7 +37,9 @@ project.yaml ──pnpm validate──► module ──terraform──► Infisi
                                                       ──► Railway variables (bridge-managed sync)
 ```
 
-Terraform writes exactly one value, ever: `__REPLACE_IN_INFISICAL__`, via `value_wo` (write-only, not in state). `placeholder_version` is the only lever that rewrites a value, and it is treated as destructive.
+Terraform creates a unique `replace_default_key_` placeholder for each secret slot. Its 256 hexadecimal characters come from 128 random bytes.
+
+Terraform stores each random suffix in private state. Infisical receives the prefixed value through `value_wo`. Terraform never stores live values.
 
 ## Identities and trust
 

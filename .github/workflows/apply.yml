@@ -31,7 +31,7 @@ env:
 jobs:
   resolve:
     name: resolve roots and approvals
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       global: ${{ steps.roots.outputs.global }}
       projects: ${{ steps.roots.outputs.projects }}
@@ -98,7 +98,7 @@ jobs:
     name: apply global
     needs: resolve
     if: needs.resolve.outputs.global == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     environment: production
     concurrency:
       group: infisical-global
@@ -167,7 +167,7 @@ jobs:
     needs: [resolve, global]
     # Run when there are projects, even if the global job was skipped (not failed).
     if: always() && needs.resolve.result == 'success' && needs.global.result != 'failure' && needs.global.result != 'cancelled' && needs.resolve.outputs.project_count != '0'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     environment: production
     concurrency:
       group: infisical-${{ matrix.root }}

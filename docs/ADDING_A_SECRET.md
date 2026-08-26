@@ -30,7 +30,7 @@ Plan expectation for one new secret in two environments: `+2 infisical_secret.sl
 
 `apply.yml` job summary shows `secrets:check` failing with the new names as `placeholder`. Then:
 
-1. Infisical → project → env → folder → replace `__REPLACE_IN_INFISICAL__`.
+1. In Infisical, replace the value that starts with `replace_default_key_`.
 2. `pnpm secrets:check <slug> --env prod` → exit 0.
 3. `pnpm sync:status <slug>` → last sync succeeded (auto-sync pushes the new key within a minute; use "Trigger sync" in Infisical to hurry).
 4. Destination has the key.

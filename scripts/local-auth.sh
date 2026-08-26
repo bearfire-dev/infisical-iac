@@ -12,7 +12,7 @@ prefix="TF_$(echo "$class" | tr '[:lower:]' '[:upper:]')"
 for pfx in "$prefix" TF_BACKUP; do
   for k in ACCESS_KEY_ID SECRET_ACCESS_KEY; do
     v="$(infisical secrets get "${pfx}_R2_${k}" --projectId "${INFISICAL_BOOTSTRAP_PROJECT_ID:?set INFISICAL_BOOTSTRAP_PROJECT_ID}" --env "$env" --path /terraform-backend --plain)"
-    [[ "$v" != "__REPLACE_IN_INFISICAL__" ]] || { echo "${pfx}_R2_${k} is still a placeholder" >&2; return 1 2>/dev/null || exit 1; }
+    [[ "$v" != "__REPLACE_IN_INFISICAL__" && "$v" != replace_default_key_* ]] || { echo "${pfx}_R2_${k} is still a placeholder" >&2; return 1 2>/dev/null || exit 1; }
     export "${pfx}_R2_${k}=$v"
   done
 done

@@ -15,9 +15,11 @@ If a topology is itself confidential (the fact that a secret named `X` exists fo
 | Application secret values | Infisical projects | humans via Infisical RBAC; never Terraform |
 | Control-plane credentials (R2 keys, GitHub PAT, Cloudflare token, Railway token) | Infisical `platform-bootstrap` | plan identity: `/terraform-backend` only in practice; apply identity: both folders; never GitHub Secrets |
 | Global Terraform state (**contains App Connection credentials** as persisted by the provider) | `bearfire-infisical-global-state` (private R2) | `TF_GLOBAL_R2_*` only; project workflows never receive it |
-| Project Terraform state (IDs, placeholder versions; no values) | `bearfire-infisical-project-state` | `TF_PROJECT_R2_*` |
+| Project Terraform state (IDs, placeholder versions, random placeholder suffixes; no live values) | `bearfire-infisical-project-state` | `TF_PROJECT_R2_*` |
 | State snapshots | `bearfire-infisical-state-backups` | `TF_BACKUP_R2_*` |
 | GitHub | repository **variables** only (IDs, host, slugs) | public in practice |
+
+The random placeholder suffix makes an unreplaced preshared key unguessable. Applications must still reject every value with the public placeholder prefix.
 
 The control-plane repository holds no long-lived GitHub Actions secrets. The optional `GITLEAKS_LICENSE` is a scanner license key, not a credential to any managed system.
 
@@ -35,7 +37,10 @@ Email security@bearfire.dev (or open a GitHub private vulnerability report on th
 
 ## Incident response: leaked bootstrap credential
 
-Applies to any of the nine `platform-bootstrap` values, the Infisical identities, or a human token used for bootstrap.
+Applies to any of the 10 `platform-bootstrap` values, the Infisical identities, or a human bootstrap token.
+
+- `/terraform-backend`: six R2 credentials and `ALCHEMY_STATE_TOKEN`
+- `/connections`: `GH_INFISICAL_CONNECTION_PAT`, `CLOUDFLARE_API_TOKEN`, and `RAILWAY_API_TOKEN`
 
 1. **Revoke at the source first** (Cloudflare R2 token / GitHub PAT / Cloudflare API token / Railway token / Infisical token). The placeholder objects and reminders make the inventory explicit: `bootstrap/terraform/main.tf`.
 2. Issue a replacement; update the value in Infisical (`platform-bootstrap/prod`). For `RAILWAY_API_TOKEN`, bump `railway_credential_version` and apply global; for the GitHub/Cloudflare tokens, apply global so the provider re-submits the connection credential.

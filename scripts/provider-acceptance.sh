@@ -38,7 +38,7 @@ tf apply -input=false -auto-approve >/dev/null
 project_id="$(tf output -raw project_id)"
 
 step "2. placeholder must not be present in state"
-if grep -q "__REPLACE_IN_INFISICAL__" "$work/terraform.tfstate"; then die "placeholder found in state: value_wo is not write-only"; fi
+if grep -Eq '(__REPLACE_IN_INFISICAL__|replace_default_key_)' "$work/terraform.tfstate"; then die "placeholder found in state: value_wo is not write-only"; fi
 
 step "3. repeated plan must be a no-op"
 expect_noop "plan not stable after apply"

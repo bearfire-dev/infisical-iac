@@ -27,7 +27,7 @@ jobs:
     name: changed roots
     # Same-repo PRs and manual dispatch only. Fork PRs stop at ci.yml.
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       matrix: ${{ steps.roots.outputs.matrix }}
       count: ${{ steps.roots.outputs.count }}
@@ -79,7 +79,7 @@ jobs:
     name: plan ${{ matrix.spec }}
     needs: changes
     if: needs.changes.outputs.count != '0'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     environment: terraform-plan
     concurrency:
       # Separate from apply's `infisical-<root>` group: an apply waiting for

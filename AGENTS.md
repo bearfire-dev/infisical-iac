@@ -8,7 +8,7 @@ The design of record is `docs/IMPLEMENTATION_PLAN.md`. When a doc and an invaria
 
 ## 0. Hard rules (non-negotiable)
 
-1. **Never commit a secret value.** Not in YAML, HCL, JSON, Markdown, tests, fixtures, or commit messages. The only value Terraform ever writes is the literal `__REPLACE_IN_INFISICAL__`.
+1. **Never commit a secret value.** Not in YAML, HCL, JSON, Markdown, tests, fixtures, or commit messages. Terraform writes only a per-slot `replace_default_key_` placeholder with 256 random hexadecimal characters.
 2. **Never increment `placeholder_version`** unless the task is explicitly a *placeholder reset* reviewed as a destructive change. Incrementing it overwrites a live value in Infisical with the placeholder.
 3. **Never pass a real value through Terraform** (`value`, `TF_VAR_*`, tfvars). Connection credentials for `global/` are the one sanctioned exception and are injected at apply time from the `platform-bootstrap` Infisical project, never committed.
 4. **One Infisical project = one root under `projects/<slug>/` = one state.** Never add a second project to a root; never read another root's state; never use `terraform_remote_state`.
@@ -167,7 +167,7 @@ Secret readiness:
 
 ## 6. Things that look like bugs but are design
 
-- A freshly created secret shows `__REPLACE_IN_INFISICAL__` in Infisical and (for net-new destinations) in the destination. Correct: a human must replace it; `pnpm secrets:check` fails until then.
+- A new secret shows a `replace_default_key_…` value in Infisical and new destinations. Correct: a human must replace it; `pnpm secrets:check` fails until then.
 - Terraform plans show no diff after a human changed a value in Infisical. Correct: `value_wo` is write-only; Terraform never reads values.
 - A Railway sync has no native Terraform resource. Correct: it is bridged (§1B) until the provider ships one.
 - `global/connections.lock.json` has zero-UUIDs and `"status": "unbootstrapped"`. Correct until bootstrap + global apply + `pnpm connections:lock` have run.

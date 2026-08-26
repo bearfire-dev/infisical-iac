@@ -28,7 +28,7 @@ Privileged commands (`pnpm plan`, `pnpm apply`, `secrets:check`, `sync:status`) 
 
 ## Rules
 
-- Never commit values, tokens, state, plans, `.tfvars`. `__REPLACE_IN_INFISICAL__` is the only value Terraform writes.
+- Never commit values, tokens, state, plans, or `.tfvars`. Terraform writes only per-slot `replace_default_key_…` placeholders.
 - Never increment `placeholder_version` for rotation.
 - Resource keys are stable strings; no list indexes.
 - Project roots never read global state.

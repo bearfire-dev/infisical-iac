@@ -47,7 +47,7 @@ After importing:
 
 ```bash
 terraform plan -detailed-exitcode   # must be 0 (no changes) before the PR
-grep -c '__REPLACE_IN_INFISICAL__' .terraform/terraform.tfstate 2>/dev/null; terraform state pull | grep -c 'secretValue'   # both must be 0
+terraform state pull | jq '[.resources[] | select(.type == "infisical_secret") | .instances[] | select(.attributes.value != null or (.attributes | has("value_wo")))] | length'   # must be 0
 ```
 
 If the plan wants to rewrite `value_wo`, the `value_wo_version` in state does not match `placeholder_version` (default 1). Do not "fix" it by applying; investigate (it would overwrite the live value with the placeholder).

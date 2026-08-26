@@ -84,7 +84,7 @@ export TF_GLOBAL_R2_ACCESS_KEY_ID=... TF_GLOBAL_R2_SECRET_ACCESS_KEY=...
 export TF_BACKUP_R2_ACCESS_KEY_ID=... TF_BACKUP_R2_SECRET_ACCESS_KEY=...
 export CLOUDFLARE_ACCOUNT_ID=<account id>
 
-scripts/terraform-plan.sh bootstrap      # review: 2 identities, 2 OIDC auths, project, env, 2 folders, tag, 9 secrets
+scripts/terraform-plan.sh bootstrap      # review: 2 identities, 2 OIDC auths, project, env, 2 folders, tag, 10 secrets
 scripts/terraform-apply.sh bootstrap
 terraform -chdir=bootstrap/terraform output github_variables
 terraform -chdir=bootstrap/terraform output -raw bootstrap_project_id
@@ -92,7 +92,7 @@ terraform -chdir=bootstrap/terraform output -raw bootstrap_project_id
 
 `terraform-apply.sh` snapshots state first; on the very first run there is no state yet, which `pnpm state:snapshot` treats as a no-op.
 
-## 6. Populate the 9 placeholders
+## 6. Populate the 10 placeholders
 
 In Infisical → project **IaC Secret CICD** → env `prod`:
 
@@ -101,6 +101,7 @@ In Infisical → project **IaC Secret CICD** → env `prod`:
 | `/terraform-backend` | `TF_GLOBAL_R2_ACCESS_KEY_ID`, `TF_GLOBAL_R2_SECRET_ACCESS_KEY` | step 4, global token |
 | `/terraform-backend` | `TF_PROJECT_R2_ACCESS_KEY_ID`, `TF_PROJECT_R2_SECRET_ACCESS_KEY` | step 4, project token |
 | `/terraform-backend` | `TF_BACKUP_R2_ACCESS_KEY_ID`, `TF_BACKUP_R2_SECRET_ACCESS_KEY` | step 4, backups token |
+| `/terraform-backend` | `ALCHEMY_STATE_TOKEN` | step 3, Alchemy state token |
 | `/connections` | `GH_INFISICAL_CONNECTION_PAT` | fine-grained PAT: Actions secrets **Read and write** on repos that receive syncs, plus `Administration: read` for org-scoped syncs |
 | `/connections` | `CLOUDFLARE_API_TOKEN` | Workers Scripts **Edit** on the account |
 | `/connections` | `RAILWAY_API_TOKEN` | Railway account/team token with access to the destination projects |
@@ -112,7 +113,7 @@ PID=$(terraform -chdir=bootstrap/terraform output -raw bootstrap_project_id)
 infisical secrets set TF_GLOBAL_R2_ACCESS_KEY_ID="$(pass show cloudflare/r2/global/id)" --projectId "$PID" --env prod --path /terraform-backend
 ```
 
-Every placeholder must be replaced; the composite action refuses `__REPLACE_IN_INFISICAL__`.
+Replace every value that starts with `replace_default_key_`. The composite action also refuses the legacy placeholder.
 
 ## 7. GitHub repository variables (non-secret)
 
@@ -153,9 +154,11 @@ Local alternative: `source scripts/local-auth.sh global && scripts/terraform-app
 ## 10. Cleanup
 
 ```bash
-unset INFISICAL_TOKEN TF_GLOBAL_R2_ACCESS_KEY_ID TF_GLOBAL_R2_SECRET_ACCESS_KEY TF_BACKUP_R2_ACCESS_KEY_ID TF_BACKUP_R2_SECRET_ACCESS_KEY
+unset INFISICAL_TOKEN ALCHEMY_STATE_TOKEN CLOUDFLARE_API_TOKEN CLOUDFLARE_API_KEY CLOUDFLARE_EMAIL
+unset TF_GLOBAL_R2_ACCESS_KEY_ID TF_GLOBAL_R2_SECRET_ACCESS_KEY TF_PROJECT_R2_ACCESS_KEY_ID TF_PROJECT_R2_SECRET_ACCESS_KEY
+unset TF_BACKUP_R2_ACCESS_KEY_ID TF_BACKUP_R2_SECRET_ACCESS_KEY
 rm -f bootstrap/terraform/bootstrap.auto.tfvars bootstrap/terraform/backend.generated.hcl
 history -c   # if any value was ever typed inline
 ```
 
-Revoke the human Infisical token. Delete the local copies of the R2 tokens from step 4. From now on `bootstrap.yml` (dispatch, `bootstrap` environment) handles bootstrap changes; the only recurring manual task is rotating the nine values on the reminder schedule ([OPERATIONS.md](OPERATIONS.md)).
+Revoke the human Infisical token. Delete the local copies of the R2 tokens from step 4. From now on, `bootstrap.yml` handles bootstrap changes through the `production` environment. The only recurring manual task is rotation of the 10 values on the reminder schedule ([OPERATIONS.md](OPERATIONS.md)).

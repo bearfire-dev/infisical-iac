@@ -14,7 +14,7 @@
 
 ## `is still the placeholder; populate it in Infisical`
 
-A `platform-bootstrap` value was never entered. Fill it in Infisical (`/terraform-backend` or `/connections`), re-run.
+A `platform-bootstrap` value still contains a current or legacy placeholder. Replace it in `/terraform-backend` or `/connections`, then run the job again.
 
 ## `not found in platform-bootstrap` / 403 reading secrets
 
