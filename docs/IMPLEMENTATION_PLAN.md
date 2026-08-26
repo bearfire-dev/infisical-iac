@@ -107,7 +107,7 @@ Hard requirements, not preferences.
 * Backend credentials never appear in committed backend configuration.
 * Raw plan files are never uploaded as repository artifacts.
 * Global state is sensitive: the provider persists App Connection credentials in it.
-* Project state must not contain current application secret values.
+* Project state contains random placeholder suffixes, but it never contains current application secret values.
 
 ### 3.4 Delivery
 * Secret Sync source folders are dedicated delivery boundaries.
@@ -160,7 +160,8 @@ The project root wrapper (`main.tf`) is identical for every project and only dec
 
 * Expands configuration into deterministic maps keyed by stable strings (`<env>:<path>:<NAME>`); indexes are never identities.
 * Creates the project (`should_create_default_envs = false`, delete protection on), one environment per declaration, one folder per (environment, set) with ≥1 required secret, one write-only placeholder secret per slot, project tags, control-plane memberships, optional project identities with OIDC auth, and syncs.
-* Placeholder constant everywhere: `__REPLACE_IN_INFISICAL__`.
+* Each secret slot gets a stable `replace_default_key_` placeholder with 256 random hexadecimal characters.
+* Terraform state contains each random suffix. The prefix check makes that placeholder invalid for application use.
 * Sync defaults: auto-sync on, `overwrite-destination`, deletions managed by Infisical, `key_schema` unset. A project may relax deletion handling only during a documented migration.
 * No `ignore_changes` workarounds until provider acceptance proves them safe.
 
@@ -173,7 +174,16 @@ The project root wrapper (`main.tf`) is identical for every project and only dec
 * **Removal:** separate PR, `destructive-change` label, plan review, production approval, consumer check; apply surfaces objects and destination keys that will be deleted.
 
 ## 11. Required-secret validation
-`pnpm secrets:check <slug> [--env <env>] | --all` — reads declared slots, authenticates, reads only required paths, compares to the placeholder, prints names and statuses (never values), exits nonzero on any missing/placeholder value. Must pass before dependent application deployment.
+`pnpm secrets:check <slug> [--env <env>] | --all` reads declared slots and required paths. It detects the current prefix and the legacy placeholder. It prints names and statuses, but never values.
+
+Applications use the public `@bearfire-dev/env` package for runtime validation. The package wraps T3 Env with Zod 4 and supplies these rules:
+
+* `secret()` rejects current and legacy placeholders.
+* Client variables cannot use `secret()`.
+* `createRequestEnv` validates Cloudflare Worker bindings during request handling.
+* `@t3-oss/env-core` and `zod` remain peer dependencies.
+
+Humans create and rotate real preshared keys. The control plane never generates or rotates a live shared key.
 
 ## 12. Sync-health validation
 `pnpm sync:status <slug> | --all` — for each declared sync: exists, source env/folder match, auto-sync matches, last sync succeeded, connection exists, destination matches declaration. Never retrieves destination values.
@@ -210,7 +220,7 @@ Inventory (no values) → pilot on a throwaway repo then one low-risk app → im
 See `README.md` → Commands. Direct `terraform` is supported for diagnosis; normal operation uses the wrappers so backend config and auth are consistent.
 
 ## 21. Security model
-Git may contain names, paths, destination identifiers, connection/identity IDs. Git must not contain values, tokens, state, `.env`, or plan files. Infisical holds all values and control-plane credentials. Global state is sensitive and isolated; project state holds identities and placeholder versions only. GitHub holds non-secret variables only. A public repository exposes infrastructure metadata and secret names; confidential topology cannot be declared here without redaction or private visibility (`SECURITY.md`).
+Git may contain names, paths, destination identifiers, connection IDs, and identity IDs. Git must not contain values, tokens, state, `.env`, or plan files. Infisical holds all live values and control-plane credentials. Global state is sensitive and isolated. Project state holds identifiers, placeholder versions, and random placeholder suffixes. GitHub holds non-secret variables only. A public repository exposes infrastructure metadata and secret names. Confidential topology requires redaction or private repository visibility (`SECURITY.md`).
 
 ## 22. Documentation requirements
 `README.md` (operating guide), `AGENTS.md` (agent-executable rules), `SECURITY.md`, `docs/OPERATIONS.md`, `docs/PROVIDER_COMPATIBILITY.md`, plus the runbooks in `docs/`.

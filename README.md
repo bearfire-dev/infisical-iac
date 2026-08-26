@@ -15,7 +15,7 @@ No secret value ever lives in this repository, in Terraform variables, or in Git
 ## How it works
 
 1. Declare a project in `projects/<slug>/project.yaml` — environments, secret sets (= Infisical folders), secret names, and syncs.
-2. CI validates and plans **only that root**. Merge → the apply workflow creates the Infisical project, folders, and every secret object with the write-only placeholder `__REPLACE_IN_INFISICAL__`.
+2. CI validates and plans **only that root**. After merge, the apply workflow creates each secret with a unique write-only placeholder.
 3. Replace placeholders in the Infisical UI.
 4. Infisical Secret Syncs push the real values to the declared destinations automatically.
 5. `pnpm secrets:check <slug>` and `pnpm sync:status <slug>` go green → merge the application change that reads the secret.
@@ -128,7 +128,7 @@ pnpm provider:acceptance                           # write-only secret acceptanc
 
 ## Safety rules (short form)
 
-- Values never enter Git or Terraform. The only written value is `__REPLACE_IN_INFISICAL__`.
+- Real values never enter Git or Terraform. Terraform creates `replace_default_key_` placeholders with 256 random hexadecimal characters.
 - `placeholder_version` is never bumped for rotation — bumping it overwrites the live value.
 - One project per root per state. Project roots read `global/connections.lock.json`, never global state.
 - Deletions, renames, sync/connection removals: separate PR + `destructive-change` label + production approval.
@@ -139,7 +139,7 @@ Pinned: Terraform `1.13.3` (`>= 1.11 < 2`), provider `infisical/infisical 0.19.2
 
 ## Status
 
-Scaffold complete; bootstrap not yet run. `global/connections.lock.json` is `unbootstrapped` until [docs/BOOTSTRAP.md](docs/BOOTSTRAP.md) is executed. Provider acceptance (`pnpm provider:acceptance`) has not yet been recorded in `docs/PROVIDER_COMPATIBILITY.md`.
+The control plane is active. `bearly-browser-sync` is the current application project. The provider acceptance suite passed on 2026-08-22.
 
 ## License
 

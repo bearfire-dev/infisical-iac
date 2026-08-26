@@ -7,6 +7,10 @@ terraform {
       source  = "infisical/infisical"
       version = "= 0.19.24"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "= 3.9.0"
+    }
   }
 }
 
@@ -49,11 +53,16 @@ resource "infisical_secret" "slot" {
   env_slug         = "prod"
   folder_path      = "/runtime"
   name             = each.key
-  value_wo         = "__REPLACE_IN_INFISICAL__"
+  value_wo         = "replace_default_key_${random_bytes.placeholder[each.key].hex}"
   value_wo_version = 1
   metadata         = { managed_by = "terraform", marker = var.metadata_marker }
 
   depends_on = [infisical_secret_folder.runtime]
+}
+
+resource "random_bytes" "placeholder" {
+  for_each = local.names
+  length   = 128
 }
 
 output "project_id" { value = infisical_project.acceptance.id }

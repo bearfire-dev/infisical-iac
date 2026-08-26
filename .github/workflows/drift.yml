@@ -25,7 +25,7 @@ concurrency:
 jobs:
   drift:
     name: detect drift
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     environment: terraform-plan
     steps:
       - uses: actions/checkout@v7
@@ -70,8 +70,11 @@ jobs:
             spec="${entry%%|*}"; dir="${entry##*|}"
             echo "::group::plan $spec"
             if scripts/terraform-init.sh "$spec" >/dev/null 2>&1; then
-              terraform -chdir="$dir" plan -input=false -lock-timeout=120s -refresh=true -out=plan.out -detailed-exitcode >/dev/null 2>/tmp/plan-err.txt
-              rc=$?
+              if terraform -chdir="$dir" plan -input=false -lock-timeout=120s -refresh=true -out=plan.out -detailed-exitcode >/dev/null 2>/tmp/plan-err.txt; then
+                rc=0
+              else
+                rc=$?
+              fi
             else
               rc=1
             fi
@@ -80,7 +83,7 @@ jobs:
               2) drift=true
                  counts="$(terraform -chdir="$dir" show -json plan.out | pnpm --silent tsx tools/cli/src/plan-guard.ts --summary | head -20 | tr '\n' ' ' | cut -c1-300)"
                  echo "| \`$spec\` | DRIFT | $counts |" >> /tmp/drift-rows.txt ;;
-              *) drift=true; echo "| \`$spec\` | plan FAILED | see run log |" >> /tmp/drift-rows.txt ;;
+              *) drift=true; echo "| \`$spec\` | plan FAILED | command returned exit code $rc |" >> /tmp/drift-rows.txt ;;
             esac
             rm -f "$dir/plan.out"
             echo "::endgroup::"

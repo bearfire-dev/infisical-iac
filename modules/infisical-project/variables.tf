@@ -48,12 +48,6 @@ variable "connections" {
   })
 }
 
-variable "placeholder_value" {
-  description = "Write-only initial value for every Terraform-created secret object. Must match the constant used by tools/cli/src/secrets-check.ts."
-  type        = string
-  default     = "__REPLACE_IN_INFISICAL__"
-}
-
 variable "default_tag_color" {
   type    = string
   default = "#6b7280"

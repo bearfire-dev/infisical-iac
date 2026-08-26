@@ -4,6 +4,13 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ## [Unreleased]
 
+### Changed
+
+- Each new secret slot now gets a unique `replace_default_key_` placeholder with 256 random hexadecimal characters.
+- Drift detection now handles Terraform detailed exit codes without an early shell exit.
+- The state backup workflow now prunes snapshots for all roots.
+- The provider compatibility document now shows one acceptance result.
+
 ## [0.1.0] - Unreleased
 
 ### Added

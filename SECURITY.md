@@ -15,9 +15,11 @@ If a topology is itself confidential (the fact that a secret named `X` exists fo
 | Application secret values | Infisical projects | humans via Infisical RBAC; never Terraform |
 | Control-plane credentials (R2 keys, GitHub PAT, Cloudflare token, Railway token) | Infisical `platform-bootstrap` | plan identity: `/terraform-backend` only in practice; apply identity: both folders; never GitHub Secrets |
 | Global Terraform state (**contains App Connection credentials** as persisted by the provider) | `bearfire-infisical-global-state` (private R2) | `TF_GLOBAL_R2_*` only; project workflows never receive it |
-| Project Terraform state (IDs, placeholder versions; no values) | `bearfire-infisical-project-state` | `TF_PROJECT_R2_*` |
+| Project Terraform state (IDs, placeholder versions, random placeholder suffixes; no live values) | `bearfire-infisical-project-state` | `TF_PROJECT_R2_*` |
 | State snapshots | `bearfire-infisical-state-backups` | `TF_BACKUP_R2_*` |
 | GitHub | repository **variables** only (IDs, host, slugs) | public in practice |
+
+The random placeholder suffix makes an unreplaced preshared key unguessable. Applications must still reject every value with the public placeholder prefix.
 
 The control-plane repository holds no long-lived GitHub Actions secrets. The optional `GITLEAKS_LICENSE` is a scanner license key, not a credential to any managed system.
 
