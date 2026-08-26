@@ -57,6 +57,10 @@ resource "infisical_secret" "slot" {
   value_wo_version = 1
   metadata         = { managed_by = "terraform", marker = var.metadata_marker }
 
+  lifecycle {
+    ignore_changes = [value_wo]
+  }
+
   depends_on = [infisical_secret_folder.runtime]
 }
 

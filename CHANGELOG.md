@@ -11,6 +11,7 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 - The state backup workflow now prunes snapshots for all roots.
 - The provider compatibility document now shows one acceptance result.
 - The bootstrap workflow can install the Infisical CLI and run provider acceptance with its OIDC identity.
+- Terraform ignores write-only placeholder expression changes after creation unless `placeholder_version` requests a reset.
 
 ## [0.1.0] - Unreleased
 

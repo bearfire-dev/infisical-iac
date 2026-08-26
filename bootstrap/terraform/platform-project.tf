@@ -64,5 +64,11 @@ resource "infisical_secret" "bootstrap" {
     repeat_days = var.credential_rotation_days
   }
 
+  lifecycle {
+    # The configured write-only value is relevant on create. Ignore later
+    # expression changes unless value_wo_version explicitly requests a reset.
+    ignore_changes = [value_wo]
+  }
+
   depends_on = [infisical_secret_folder.bootstrap]
 }
