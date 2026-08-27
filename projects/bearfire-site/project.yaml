@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=../../schemas/project.schema.json
+schema_version: 1
+
+project:
+  name: Bearfire Site
+  slug: bearfire-site
+  description: CI deployment credentials for bearfire-dev/bearfire-site (Cloudflare Workers through Alchemy)
+
+environments:
+  preview:
+    name: Preview
+    position: 1
+  prod:
+    name: Production
+    position: 2
+
+secret_sets:
+  ci:
+    path: /ci
+    description: GitHub Actions deployment credentials consumed by plan.yml and deploy.yml
+    secrets:
+      CLOUDFLARE_API_TOKEN:
+        required_in: [preview, prod]
+        comment: Cloudflare account token used by Alchemy plans and production deploys
+        reminder_days: 90
+      CLOUDFLARE_ACCOUNT_ID:
+        required_in: [preview, prod]
+        comment: Cloudflare account ID delivered with the deployment token
+
+syncs:
+  preview-ci-to-github-preview:
+    type: github
+    connection: github
+    source: { environment: preview, secret_set: ci }
+    destination:
+      scope: repository-environment
+      owner: bearfire-dev
+      repository: bearfire-site
+      repository_environment: preview
+    auto_sync: true
+    manage_deletions: true
+
+  prod-ci-to-github-production:
+    type: github
+    connection: github
+    source: { environment: prod, secret_set: ci }
+    destination:
+      scope: repository-environment
+      owner: bearfire-dev
+      repository: bearfire-site
+      repository_environment: production
+    auto_sync: true
+    manage_deletions: true
