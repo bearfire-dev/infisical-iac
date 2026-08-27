@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=../../schemas/project.schema.json
+schema_version: 1
+
+project:
+  name: Bearly Sound Amp
+  slug: bearly-sound-amp
+  description: CI deployment credentials for bearfire-dev/bearly-sound-amp (Cloudflare through SST)
+
+environments:
+  preview:
+    name: Preview
+    position: 1
+  prod:
+    name: Production
+    position: 2
+
+secret_sets:
+  ci:
+    path: /ci
+    description: GitHub Actions deployment credentials consumed by preview.yml and deploy.yml
+    secrets:
+      CLOUDFLARE_API_TOKEN:
+        required_in: [preview, prod]
+        comment: Cloudflare account token used by SST preview and production deploys
+        reminder_days: 90
+
+syncs:
+  preview-ci-to-github-preview:
+    type: github
+    connection: github
+    source: { environment: preview, secret_set: ci }
+    destination:
+      scope: repository-environment
+      owner: bearfire-dev
+      repository: bearly-sound-amp
+      repository_environment: preview
+    auto_sync: true
+    manage_deletions: true
+
+  prod-ci-to-github-production:
+    type: github
+    connection: github
+    source: { environment: prod, secret_set: ci }
+    destination:
+      scope: repository-environment
+      owner: bearfire-dev
+      repository: bearly-sound-amp
+      repository_environment: production
+    auto_sync: true
+    manage_deletions: true
