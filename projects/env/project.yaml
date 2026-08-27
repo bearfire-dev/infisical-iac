@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../../schemas/project.schema.json
+schema_version: 1
+
+project:
+  name: Bearfire Env
+  slug: env
+  description: npm publication credentials for bearfire-dev/env
+
+environments:
+  prod:
+    name: Production
+    position: 1
+
+secret_sets:
+  ci:
+    path: /ci
+    description: npm publication credentials for GitHub Actions
+    secrets:
+      NPM_TOKEN:
+        required_in: [prod]
+        comment: Granular npm publication token for the public @bearfire-dev/env package
+        reminder_days: 90
+
+syncs:
+  prod-ci-to-github-production:
+    type: github
+    connection: github
+    source: { environment: prod, secret_set: ci }
+    destination:
+      scope: repository-environment
+      owner: bearfire-dev
+      repository: env
+      repository_environment: production
+    auto_sync: true
+    manage_deletions: true
