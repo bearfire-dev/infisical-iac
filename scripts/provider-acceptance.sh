@@ -3,10 +3,11 @@
 #
 # Runs the write-only secret acceptance suite against a THROWAWAY Infisical
 # project using the pinned provider. Requires a human or bootstrap token:
-#   INFISICAL_HOST, INFISICAL_TOKEN, INFISICAL_ORG_ID
+#   INFISICAL_HOST, INFISICAL_TOKEN, INFISICAL_ORG_ID,
+#   INFISICAL_OPERATOR_USERNAME
 # and local `terraform` + `infisical` CLI. Uses a local state file only.
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
-require_env INFISICAL_TOKEN INFISICAL_ORG_ID
+require_env INFISICAL_TOKEN INFISICAL_ORG_ID INFISICAL_OPERATOR_USERNAME
 command -v infisical >/dev/null || die "infisical CLI is required (https://infisical.com/docs/cli/overview)"
 
 suite="$REPO_ROOT/modules/infisical-project/tests/acceptance"
@@ -29,6 +30,7 @@ expect_noop() {
   die "$1"
 }
 export TF_VAR_suffix="${ACCEPTANCE_SUFFIX:-$(date +%s)}"
+export TF_VAR_operator_username="$INFISICAL_OPERATOR_USERNAME"
 
 step() { log "--- $*"; }
 

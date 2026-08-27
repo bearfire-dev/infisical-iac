@@ -60,6 +60,10 @@ jobs:
             echo "::endgroup::"
           done
           exit $status
+      - name: terraform module tests
+        run: |
+          terraform -chdir=modules/infisical-project init -backend=false -input=false -no-color >/dev/null
+          terraform -chdir=modules/infisical-project test -no-color
       - uses: terraform-linters/setup-tflint@v6
       - name: tflint
         run: |

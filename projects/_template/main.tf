@@ -19,8 +19,9 @@ locals {
 module "project" {
   source = "../../modules/infisical-project"
 
-  config      = local.project_config
-  connections = local.connections
+  config             = local.project_config
+  connections        = local.connections
+  operator_usernames = ["yehumbleaccounts@pm.me"]
 }
 
 output "project" {

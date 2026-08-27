@@ -15,6 +15,17 @@ resource "infisical_project_identity" "control_plane_plan" {
   roles = [{ role_slug = var.control_plane_plan_role }]
 }
 
+# Human operators need project membership for direct Infisical CLI actions.
+# Authentication stays in the operator's local Infisical keyring.
+resource "infisical_project_user" "operator" {
+  for_each = var.operator_usernames
+
+  project_id = infisical_project.this.id
+  username   = each.value
+
+  roles = [{ role_slug = "admin" }]
+}
+
 # Optional project-specific machine identities (for example an application's
 # runtime identity that reads its own secrets directly from Infisical).
 resource "infisical_identity" "project" {
