@@ -12,6 +12,10 @@ pnpm project:validate <slug>
 
 Do not edit `projects/<slug>/main.tf`, `backend.tf`, or `versions.tf`; they are identical for every project. Extend the module if something is missing.
 
+The standard wrapper grants the Bearfire operator permanent project admin access. This
+membership permits direct Infisical CLI actions. Local authentication stays in the
+operator's Infisical keyring.
+
 ## 2. Write project.yaml
 
 Minimal example:
@@ -55,7 +59,9 @@ git commit -m "feat(projects): add <slug>"
 gh pr create --fill
 ```
 
-`plan.yml` plans only `project:<slug>`. Expect creates only: project, environments, folders, `N` secret objects, tags, two control-plane memberships, syncs. Any destroy on a new project is a bug.
+`plan.yml` plans only `project:<slug>`. Expect creates only: project, environments,
+folders, `N` secret objects, tags, two control-plane memberships, one operator
+membership, and syncs. Any destroy on a new project is a bug.
 
 ## 4. Merge and populate
 

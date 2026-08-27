@@ -21,6 +21,9 @@ variable "metadata_marker" {
   type    = string
   default = "initial"
 }
+variable "operator_username" {
+  type = string
+}
 
 locals {
   names = { for i in range(1, 21) : format("ACCEPT_SECRET_%02d", i) => i }
@@ -37,6 +40,13 @@ resource "infisical_project_environment" "prod" {
   name       = "Production"
   slug       = "prod"
   position   = 1
+}
+
+resource "infisical_project_user" "operator" {
+  project_id = infisical_project.acceptance.id
+  username   = var.operator_username
+
+  roles = [{ role_slug = "admin" }]
 }
 
 resource "infisical_secret_folder" "runtime" {

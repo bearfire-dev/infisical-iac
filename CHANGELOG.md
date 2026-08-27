@@ -14,6 +14,9 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 - Terraform ignores write-only placeholder expression changes after creation unless `placeholder_version` requests a reset.
 - Drift checks now use project-scoped APIs and locked connection IDs, so the restricted plan identity does not require organization App Connection access.
 - Drift plans now retain project-state backend credentials after Terraform initialization.
+- Managed projects now grant the Bearfire operator admin membership for direct local CLI actions.
+- Global applies now tolerate organization policy that blocks workflow-created lock-file pull requests.
+- The connection lock generator now emits formatter-compatible JSON.
 
 ## [0.1.0] - Unreleased
 

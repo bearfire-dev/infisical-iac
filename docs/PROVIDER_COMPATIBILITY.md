@@ -30,7 +30,7 @@ Plan §16. Pins: Terraform `>= 1.11.0, < 2.0.0` (CI: **1.13.3**), provider `infi
 5. write-only import (`write-only:<project_id>:<env>:<path>:<NAME>`) leaks nothing into state and plans clean
 6. destroy succeeds
 
-Run: `INFISICAL_HOST=… INFISICAL_TOKEN=… INFISICAL_ORG_ID=… pnpm provider:acceptance`.
+Run: `INFISICAL_HOST=… INFISICAL_TOKEN=… INFISICAL_ORG_ID=… INFISICAL_OPERATOR_USERNAME=… pnpm provider:acceptance`.
 
 For the live control plane, dispatch `bootstrap.yml` with `provider_acceptance: true`. The workflow uses the apply identity through the production environment.
 

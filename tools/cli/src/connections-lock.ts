@@ -5,52 +5,19 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { findRailwayConnectionByName } from "../../infisical-api-bridge/src/railway-connection.js";
+import { type ConnectionsLock, renderConnectionsLock } from "./lib/connections-lock-format.js";
 import { hasCredentials, InfisicalClient } from "./lib/infisical.js";
 import { die, fail, ok, warn } from "./lib/output.js";
 import { findRepoRoot } from "./lib/repo.js";
 
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000";
-const KEY_ORDER = [
-  "schemaVersion",
-  "status",
-  "organization",
-  "identities",
-  "github",
-  "cloudflare",
-  "railway",
-  "tags",
-];
-
-interface Ref {
-  id: string;
-  name: string;
-}
-interface Lock {
-  schemaVersion: number;
-  status?: string;
-  organization: { id: string; slug: string };
-  identities: { plan: Ref; apply: Ref };
-  github: Ref;
-  cloudflare: Ref;
-  railway: Ref;
-  tags: string[];
-}
-
 const repoRoot = findRepoRoot();
 const lockPath = join(repoRoot, "global", "connections.lock.json");
 const mode = process.argv[2];
 const offline = process.argv.includes("--offline");
 
-function readLock(): Lock {
-  return JSON.parse(readFileSync(lockPath, "utf8")) as Lock;
-}
-
-/** Stable key order, 2-space indent, trailing newline. */
-export function renderLock(lock: Lock): string {
-  const ordered: Record<string, unknown> = {};
-  for (const k of KEY_ORDER)
-    if (k in lock) ordered[k] = (lock as unknown as Record<string, unknown>)[k];
-  return `${JSON.stringify(ordered, null, 2)}\n`;
+function readLock(): ConnectionsLock {
+  return JSON.parse(readFileSync(lockPath, "utf8")) as ConnectionsLock;
 }
 
 async function write(): Promise<void> {
@@ -70,7 +37,7 @@ async function write(): Promise<void> {
         process.env.TF_GLOBAL_R2_SECRET_ACCESS_KEY ?? process.env.AWS_SECRET_ACCESS_KEY ?? "",
     },
   });
-  const next = JSON.parse(raw) as Lock;
+  const next = JSON.parse(raw) as ConnectionsLock;
 
   let railwayId = existing.railway?.id ?? ZERO_UUID;
   if (hasCredentials()) {
@@ -87,7 +54,7 @@ async function write(): Promise<void> {
   } else warn("no Infisical credentials; keeping existing Railway connection id");
   next.railway = { id: railwayId, name: next.railway.name };
   const { status: _status, ...rest } = next;
-  writeFileSync(lockPath, renderLock(rest as Lock));
+  writeFileSync(lockPath, renderConnectionsLock(rest as ConnectionsLock));
   ok(
     `wrote global/connections.lock.json (railway id ${railwayId === ZERO_UUID ? "UNRESOLVED" : "resolved"})`,
   );
@@ -95,7 +62,7 @@ async function write(): Promise<void> {
 
 async function check(): Promise<void> {
   let failures = 0;
-  let lock: Lock;
+  let lock: ConnectionsLock;
   try {
     lock = readLock();
   } catch (err) {

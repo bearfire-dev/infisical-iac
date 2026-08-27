@@ -113,4 +113,5 @@ jobs:
         if: inputs.provider_acceptance
         env:
           INFISICAL_ORG_ID: ${{ vars.INFISICAL_ORG_ID }}
+          INFISICAL_OPERATOR_USERNAME: ${{ vars.INFISICAL_OPERATOR_USERNAME }}
         run: pnpm provider:acceptance

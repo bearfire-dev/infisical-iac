@@ -64,3 +64,14 @@ variable "control_plane_apply_role" {
   type        = string
   default     = "admin"
 }
+
+variable "operator_usernames" {
+  description = "Infisical usernames that receive permanent admin access for direct operator CLI actions."
+  type        = set(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for username in var.operator_usernames : trimspace(username) == username && length(username) > 0])
+    error_message = "Operator usernames must be non-empty and cannot have leading or trailing whitespace."
+  }
+}
