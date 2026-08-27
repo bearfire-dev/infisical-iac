@@ -3,7 +3,7 @@ schema_version: 1
 
 project:
   name: Bearfire Env
-  slug: env
+  slug: bearfire-env
   description: npm publication credentials for bearfire-dev/env
 
 environments:
