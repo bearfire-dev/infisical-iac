@@ -1,5 +1,5 @@
 /**
- * Alchemy stack: Terraform state infrastructure for bearfire-dev/infisical-iac.
+ * Alchemy stack: Terraform state infrastructure for paperkeel/infisical-iac.
  *
  * Creates three PRIVATE R2 buckets:
  *   bearfire-infisical-global-state    sensitive: bootstrap + global state

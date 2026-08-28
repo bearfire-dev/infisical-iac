@@ -41,7 +41,7 @@ syncs:
     type: github
     connection: github
     source: { environment: prod, secret_set: runtime }
-    destination: { scope: repository, owner: bearfire-dev, repository: example-app }
+    destination: { scope: repository, owner: paperkeel, repository: example-app }
 ```
 
 Rules:
@@ -76,7 +76,7 @@ Transient delivery of the placeholder to a brand-new destination is accepted; ne
 
 ## 5. Application side
 
-The application PR that consumes the secrets references `Depends on bearfire-dev/infisical-iac#<n>` and merges only after `secrets:check` passes.
+The application PR that consumes the secrets references `Depends on paperkeel/infisical-iac#<n>` and merges only after `secrets:check` passes.
 
 ## Removing a project
 

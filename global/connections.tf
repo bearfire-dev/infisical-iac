@@ -4,7 +4,7 @@
 
 resource "infisical_app_connection_github" "bearfire" {
   name        = "bearfire-github"
-  description = "GitHub Actions secret delivery for bearfire-dev repositories (managed by infisical-iac)"
+  description = "GitHub Actions secret delivery for paperkeel repositories (managed by infisical-iac)"
   method      = "pat"
 
   credentials = {

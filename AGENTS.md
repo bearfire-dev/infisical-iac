@@ -1,4 +1,4 @@
-# AGENTS.md — operating rules for agents working in `bearfire-dev/infisical-iac`
+# AGENTS.md — operating rules for agents working in `paperkeel/infisical-iac`
 
 This repository is the **control plane** for Infisical across Bearfire: it declares which Infisical projects, environments, folders, secret *objects*, identities, App Connections, and Secret Syncs exist. It never holds secret *values*. Read this file fully before changing anything. `CLAUDE.md` is a symlink to this file.
 
@@ -13,7 +13,7 @@ The design of record is `docs/IMPLEMENTATION_PLAN.md`. When a doc and an invaria
 3. **Never pass a real value through Terraform** (`value`, `TF_VAR_*`, tfvars). Connection credentials for `global/` are the one sanctioned exception and are injected at apply time from the `platform-bootstrap` Infisical project, never committed.
 4. **One Infisical project = one root under `projects/<slug>/` = one state.** Never add a second project to a root; never read another root's state; never use `terraform_remote_state`.
 5. **Project roots read `global/connections.lock.json`, never global state.** Global state is sensitive (the provider persists connection credentials in it).
-6. **Platform PR before application PR.** Secrets are declared and populated here before any app code that reads them merges. App PRs link `Depends on bearfire-dev/infisical-iac#<n>`.
+6. **Platform PR before application PR.** Secrets are declared and populated here before any app code that reads them merges. App PRs link `Depends on paperkeel/infisical-iac#<n>`.
 7. **Shared-module, schema, tooling, or script changes require plans for every project root.** Review the aggregate; applies still run per root.
 8. **Never run `terraform apply` from an untrusted PR, from a fork, or locally against production roots** unless a human operator has explicitly asked for a local bootstrap/break-glass apply per `docs/BOOTSTRAP.md` / `docs/OPERATIONS.md`.
 9. **Destructive changes need explicit review**: deleting a project, environment, folder, secret object, sync, or connection; renaming a slug or path (which is delete + create); incrementing `placeholder_version`. Put them in their own PR with the `destructive-change` label and explain the blast radius in the PR body.
@@ -155,7 +155,7 @@ GitHub holds **variables only** (`INFISICAL_*_IDENTITY_ID`, `CLOUDFLARE_ACCOUNT_
 PR body pattern for application repos that consume new secrets:
 
 ```text
-Depends on bearfire-dev/infisical-iac#123
+Depends on paperkeel/infisical-iac#123
 
 Secret readiness:
 - [x] Required Infisical objects created

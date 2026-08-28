@@ -17,7 +17,7 @@ No secret value ever lives in this repository, in Terraform variables, or in Git
 Use the [Skills CLI](https://skills.sh) to install the skill globally:
 
 ```bash
-bunx skills add bearfire-dev/infisical-iac --skill bearfire-infisical-iac --global
+bunx skills add paperkeel/infisical-iac --skill bearfire-infisical-iac --global
 ```
 
 The installer finds the skill in `.agents/skills` and installs it for your selected agents.
@@ -36,7 +36,7 @@ Rotation is step 3 only. No Terraform change, ever.
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│ bearfire-dev/infisical-iac                                  │
+│ paperkeel/infisical-iac                                  │
 │  bootstrap/   identities, GitHub OIDC trust, R2 buckets     │  state: global bucket (sensitive)
 │  global/      App Connections (GitHub, Cloudflare, Railway) │  state: global bucket (sensitive)
 │  modules/     shared project module + Railway bridge        │
@@ -94,7 +94,7 @@ syncs:
     type: github
     connection: github
     source: { environment: prod, secret_set: ci }
-    destination: { scope: repository, owner: bearfire-dev, repository: sigla-writer }
+    destination: { scope: repository, owner: paperkeel, repository: sigla-writer }
 ```
 
 Secret sets are folders; a sync delivers one folder of one environment to one destination, and Infisical then owns that destination.

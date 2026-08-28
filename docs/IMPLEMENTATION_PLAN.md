@@ -1,7 +1,7 @@
-# Implementation Plan: `bearfire-dev/infisical-iac`
+# Implementation Plan: `paperkeel/infisical-iac`
 
 **Status:** Adopted v1 (2026-08-22)
-**Repository:** `github.com/bearfire-dev/infisical-iac`
+**Repository:** `github.com/paperkeel/infisical-iac`
 **License:** MIT
 **Purpose:** Central, declarative control plane for Infisical projects, secret objects, identities, permissions, App Connections, and Secret Syncs across Bearfire projects.
 
@@ -42,7 +42,7 @@ There is no staging state machine, custom secret-entry CLI, or application-side 
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
-│ bearfire-dev/infisical-iac                                      │
+│ paperkeel/infisical-iac                                      │
 │ bootstrap/       Root identity, OIDC, state infrastructure      │
 │ global/          Shared App Connections and organization config │
 │ modules/         Reusable Infisical project implementation      │
@@ -168,7 +168,7 @@ The project root wrapper (`main.tf`) is identical for every project and only dec
 ## 10. Normal secret lifecycle
 
 * **Net-new project:** create root → PR → CI validates/plans only that root → merge → Terraform creates everything with placeholders → replace placeholders in Infisical → `pnpm secrets:check` + `pnpm sync:status` → merge app changes. Transient placeholder delivery to a net-new destination is accepted.
-* **New secret:** platform PR → apply → replace placeholder → verify → application PR that references `Depends on bearfire-dev/infisical-iac#<n>`.
+* **New secret:** platform PR → apply → replace placeholder → verify → application PR that references `Depends on paperkeel/infisical-iac#<n>`.
 * **Rotation:** change the value in Infisical; no Terraform change; never touch `placeholder_version`.
 * **Rename:** add new → populate → deploy consumers → confirm old unused → remove old in a separate destructive PR.
 * **Removal:** separate PR, `destructive-change` label, plan review, production approval, consumer check; apply surfaces objects and destination keys that will be deleted.
@@ -176,7 +176,7 @@ The project root wrapper (`main.tf`) is identical for every project and only dec
 ## 11. Required-secret validation
 `pnpm secrets:check <slug> [--env <env>] | --all` reads declared slots and required paths. It detects the current prefix and the legacy placeholder. It prints names and statuses, but never values.
 
-Applications use the public `@bearfire-dev/env` package for runtime validation. The package wraps T3 Env with Zod 4 and supplies these rules:
+Applications use the public `@paperkeel/env` package for runtime validation. The package wraps T3 Env with Zod 4 and supplies these rules:
 
 * `secret()` rejects current and legacy placeholders.
 * Client variables cannot use `secret()`.

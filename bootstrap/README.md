@@ -1,6 +1,6 @@
 # bootstrap/
 
-Root of trust for `bearfire-dev/infisical-iac`. Step-by-step procedure: [docs/BOOTSTRAP.md](../docs/BOOTSTRAP.md).
+Root of trust for `paperkeel/infisical-iac`. Step-by-step procedure: [docs/BOOTSTRAP.md](../docs/BOOTSTRAP.md).
 
 | Directory | What | Run by |
 |---|---|---|

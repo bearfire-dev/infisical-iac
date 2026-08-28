@@ -108,7 +108,7 @@ resource "infisical_org_role" "plan" {
 
   name        = "Infisical IaC plan"
   slug        = "infisical-iac-plan"
-  description = "Read-only organization access for bearfire-dev/infisical-iac Terraform plans"
+  description = "Read-only organization access for paperkeel/infisical-iac Terraform plans"
 
   permissions = [
     { subject = "app-connections", action = ["read"] },

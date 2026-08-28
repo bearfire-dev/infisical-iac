@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/bearfire-dev/infisical-iac/schemas/project.schema.json",
+  "$id": "https://github.com/paperkeel/infisical-iac/schemas/project.schema.json",
   "title": "Infisical IaC project configuration",
   "description": "Declares one Infisical project: environments, secret sets (folders), secret objects, and Secret Syncs. Never contains secret values.",
   "type": "object",

@@ -37,7 +37,7 @@ variable "apply_identity_org_role" {
 
 variable "github_owner" {
   type    = string
-  default = "bearfire-dev"
+  default = "paperkeel"
 }
 
 variable "github_repository" {
@@ -46,12 +46,12 @@ variable "github_repository" {
 }
 
 variable "github_repository_id" {
-  description = "Immutable numeric repository ID (gh api repos/bearfire-dev/infisical-iac --jq .id), as a string."
+  description = "Immutable numeric repository ID (gh api repos/paperkeel/infisical-iac --jq .id), as a string."
   type        = string
 }
 
 variable "github_owner_id" {
-  description = "Immutable numeric owner/org ID (gh api orgs/bearfire-dev --jq .id), as a string."
+  description = "Immutable numeric owner/org ID (gh api orgs/paperkeel --jq .id), as a string."
   type        = string
 }
 

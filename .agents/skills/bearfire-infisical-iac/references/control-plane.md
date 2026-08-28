@@ -2,7 +2,7 @@
 
 Read this reference before you change Infisical objects, environments, folders, secret sets, syncs, or destinations.
 
-Use `bearfire-dev/infisical-iac` as the canonical control-plane repository.
+Use `paperkeel/infisical-iac` as the canonical control-plane repository.
 
 ## Select a safe checkout
 
@@ -75,7 +75,7 @@ schema_version: 1
 project:
   name: Example App
   slug: example-app
-  description: Managed environment contract for bearfire-dev/example-app
+  description: Managed environment contract for paperkeel/example-app
 
 environments:
   preview: { name: Preview, position: 1 }
@@ -105,7 +105,7 @@ syncs:
     source: { environment: prod, secret_set: ci }
     destination:
       scope: repository-environment
-      owner: bearfire-dev
+      owner: paperkeel
       repository: example-app
       repository_environment: production
   preview-ci-to-github-preview:
@@ -114,7 +114,7 @@ syncs:
     source: { environment: preview, secret_set: ci }
     destination:
       scope: repository-environment
-      owner: bearfire-dev
+      owner: paperkeel
       repository: example-app
       repository_environment: preview
 ```
@@ -186,7 +186,7 @@ syncs:
     source: { environment: prod, secret_set: ci }
     destination:
       scope: repository-environment
-      owner: bearfire-dev
+      owner: paperkeel
       repository: example-app
       repository_environment: production
   prod-runtime-to-railway:
@@ -267,7 +267,7 @@ Keep the application change blocked until both commands pass.
 Add this text to an authorized application pull request:
 
 ```text
-Depends on bearfire-dev/infisical-iac#<number>
+Depends on paperkeel/infisical-iac#<number>
 
 Secret readiness:
 - [ ] Required Infisical objects created

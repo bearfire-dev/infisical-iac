@@ -1,6 +1,6 @@
 ---
 name: bearfire-infisical-iac
-description: Set up Bearfire applications to use @bearfire-dev/env with bearfire-dev/infisical-iac, and manage Infisical-delivered variables. Use for project onboarding, additions, renames, rotations, removals, and application-only validation changes. Do not use for public configuration.
+description: Set up Bearfire applications to use @paperkeel/env with paperkeel/infisical-iac, and manage Infisical-delivered variables. Use for project onboarding, additions, renames, rotations, removals, and application-only validation changes. Do not use for public configuration.
 ---
 
 # Bearfire Infisical IaC
@@ -11,8 +11,8 @@ Maintain one environment contract across the application and the Bearfire contro
 Application schema -> Infisical declaration -> human value entry -> Secret Sync -> runtime validation
 ```
 
-Use `@bearfire-dev/env` to validate names, types, and Infisical placeholders in the application.
-Use `bearfire-dev/infisical-iac` to declare Infisical objects and delivery rules.
+Use `@paperkeel/env` to validate names, types, and Infisical placeholders in the application.
+Use `paperkeel/infisical-iac` to declare Infisical objects and delivery rules.
 Keep live values in Infisical.
 
 ## Start the task
@@ -48,11 +48,11 @@ Treat a key name, environment, folder, secret set, sync, or destination as Infis
 
 ## Set up an application for Infisical IaC
 
-Use this lifecycle when the application has no project root in `bearfire-dev/infisical-iac`.
+Use this lifecycle when the application has no project root in `paperkeel/infisical-iac`.
 
 1. Inventory the application environments, runtimes, deployments, and managed key names.
 2. Identify the delivery destination for each key and environment.
-3. Install `@bearfire-dev/env` and its peer dependencies in the consumer.
+3. Install `@paperkeel/env` and its peer dependencies in the consumer.
 4. Add one typed environment module for each runtime boundary.
 5. Add focused tests for types, invalid values, and placeholder rejection.
 6. Create `projects/<slug>/` with `pnpm project:new` in the control-plane repository.

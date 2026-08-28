@@ -17,7 +17,7 @@ variables {
   }
   connections = {
     schemaVersion = 1
-    organization  = { id = "00000000-0000-0000-0000-000000000001", slug = "bearfire-dev" }
+    organization  = { id = "00000000-0000-0000-0000-000000000001", slug = "paperkeel" }
     identities = {
       plan  = { id = "00000000-0000-0000-0000-000000000002", name = "plan" }
       apply = { id = "00000000-0000-0000-0000-000000000003", name = "apply" }

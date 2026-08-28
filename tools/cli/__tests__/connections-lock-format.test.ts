@@ -3,7 +3,7 @@ import { type ConnectionsLock, renderConnectionsLock } from "../src/lib/connecti
 
 const lock: ConnectionsLock = {
   schemaVersion: 1,
-  organization: { id: "organization-id", slug: "bearfire-dev" },
+  organization: { id: "organization-id", slug: "paperkeel" },
   identities: {
     plan: { id: "plan-id", name: "plan" },
     apply: { id: "apply-id", name: "apply" },

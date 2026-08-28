@@ -4,7 +4,7 @@ schema_version: 1
 project:
   name: Bearfire Site
   slug: bearfire-site
-  description: CI deployment credentials for bearfire-dev/bearfire-site (Cloudflare Workers through Alchemy)
+  description: CI deployment credentials for paperkeel/bearfire-site (Cloudflare Workers through Alchemy)
 
 environments:
   preview:
@@ -34,7 +34,7 @@ syncs:
     source: { environment: preview, secret_set: ci }
     destination:
       scope: repository-environment
-      owner: bearfire-dev
+      owner: paperkeel
       repository: bearfire-site
       repository_environment: preview
     auto_sync: true
@@ -46,7 +46,7 @@ syncs:
     source: { environment: prod, secret_set: ci }
     destination:
       scope: repository-environment
-      owner: bearfire-dev
+      owner: paperkeel
       repository: bearfire-site
       repository_environment: production
     auto_sync: true

@@ -5,7 +5,7 @@ Design of record: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). This page is
 ## One repository, many states
 
 ```text
-bearfire-dev/infisical-iac
+paperkeel/infisical-iac
 ├── bootstrap/alchemy      Alchemy stack → three private R2 buckets (state infra)
 ├── bootstrap/terraform    platform-bootstrap project, plan/apply identities, GitHub OIDC
 ├── global                 App Connections (GitHub, Cloudflare native; Railway via bridge), tag catalogue
@@ -45,8 +45,8 @@ Terraform stores each random suffix in private state. Infisical receives the pre
 
 | Identity | Org role | GitHub environment | OIDC subject | Used by |
 |---|---|---|---|---|
-| `infisical-iac-github-plan` | member (viewer in each project) | `terraform-plan` | `repo:bearfire-dev/infisical-iac:environment:terraform-plan` | `plan.yml`, `drift.yml`, `state-backup.yml` |
-| `infisical-iac-github-apply` | admin | `production` (reviewers, `main` only) and `bootstrap` | `repo:bearfire-dev/infisical-iac:environment:production` | `apply.yml`, `bootstrap.yml` |
+| `infisical-iac-github-plan` | member (viewer in each project) | `terraform-plan` | `repo:paperkeel/infisical-iac:environment:terraform-plan` | `plan.yml`, `drift.yml`, `state-backup.yml` |
+| `infisical-iac-github-apply` | admin | `production` (reviewers, `main` only) and `bootstrap` | `repo:paperkeel/infisical-iac:environment:production` | `apply.yml`, `bootstrap.yml` |
 
 Both bindings also pin `repository_id` and `repository_owner_id`, so a rename cannot widen trust. The apply identity's binding pins `ref=refs/heads/main`.
 
