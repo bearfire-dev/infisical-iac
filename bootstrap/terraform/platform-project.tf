@@ -1,7 +1,7 @@
 resource "infisical_project" "bootstrap" {
   name                       = "IaC Secret CICD"
   slug                       = var.bootstrap_project_slug
-  description                = "Control-plane credentials for bearfire-dev/infisical-iac. Values are entered by humans; objects are managed by Terraform."
+  description                = "Control-plane credentials for paperkeel/infisical-iac. Values are entered by humans; objects are managed by Terraform."
   type                       = "secret-manager"
   should_create_default_envs = false
   has_delete_protection      = true
@@ -54,7 +54,7 @@ resource "infisical_secret" "bootstrap" {
 
   metadata = {
     managed_by = "terraform"
-    repository = "bearfire-dev/infisical-iac"
+    repository = "paperkeel/infisical-iac"
     project    = var.bootstrap_project_slug
     comment    = each.value.comment
   }

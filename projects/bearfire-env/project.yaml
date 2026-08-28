@@ -4,7 +4,7 @@ schema_version: 1
 project:
   name: Bearfire Env
   slug: bearfire-env
-  description: npm publication credentials for bearfire-dev/env
+  description: npm publication credentials for paperkeel/env
 
 environments:
   prod:
@@ -18,7 +18,7 @@ secret_sets:
     secrets:
       NPM_TOKEN:
         required_in: [prod]
-        comment: Granular npm publication token for the public @bearfire-dev/env package
+        comment: Granular npm publication token for the public @paperkeel/env package
         reminder_days: 90
 
 syncs:
@@ -28,7 +28,7 @@ syncs:
     source: { environment: prod, secret_set: ci }
     destination:
       scope: repository-environment
-      owner: bearfire-dev
+      owner: paperkeel
       repository: env
       repository_environment: production
     auto_sync: true

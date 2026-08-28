@@ -6,6 +6,7 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 
 ### Changed
 
+- GitHub OIDC trust, package scopes, repository targets, and secret syncs now use the `paperkeel` organization.
 - Each new secret slot now gets a unique `replace_default_key_` placeholder with 256 random hexadecimal characters.
 - Drift detection now handles Terraform detailed exit codes without an early shell exit.
 - The state backup workflow now prunes snapshots for all roots.
@@ -27,5 +28,5 @@ All notable changes to this project are documented here. Format: [Keep a Changel
 - GitHub Actions: `ci`, `plan`, `apply`, `bootstrap`, `drift`, `state-backup`; composite `infisical-auth` action (secretless OIDC).
 - Documentation: architecture, bootstrap, runbooks, migration, operations, PR SOP, provider compatibility, state recovery, troubleshooting, security policy.
 
-[Unreleased]: https://github.com/bearfire-dev/infisical-iac/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/bearfire-dev/infisical-iac/releases/tag/v0.1.0
+[Unreleased]: https://github.com/paperkeel/infisical-iac/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/paperkeel/infisical-iac/releases/tag/v0.1.0

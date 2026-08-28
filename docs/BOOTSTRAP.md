@@ -2,12 +2,12 @@
 
 One-time setup of the root of trust. Everything after step 9 is done through pull requests. Nothing here puts a secret value into Git or GitHub Secrets.
 
-Prerequisites: `gh` (authenticated, admin on `bearfire-dev/infisical-iac`), `terraform` 1.13.x, `node` 24 + `pnpm`, `infisical` CLI, Cloudflare dashboard access, Infisical org admin.
+Prerequisites: `gh` (authenticated, admin on `paperkeel/infisical-iac`), `terraform` 1.13.x, `node` 24 + `pnpm`, `infisical` CLI, Cloudflare dashboard access, Infisical org admin.
 
 ## 1. Repository settings
 
 ```bash
-gh repo edit bearfire-dev/infisical-iac --enable-auto-merge=false --delete-branch-on-merge
+gh repo edit paperkeel/infisical-iac --enable-auto-merge=false --delete-branch-on-merge
 gh label create destructive-change --color B60205 --description "Plan deletes or replaces resources; requires production approval"
 gh label create drift --color FBCA04 --description "Opened by drift.yml"
 gh label create automated --color 0E8A16
@@ -19,7 +19,7 @@ Branch protection on `main`: require PRs, require `ci` status checks, require CO
 Environments (`terraform-plan`, `production`, `bootstrap`):
 
 ```bash
-R=repos/bearfire-dev/infisical-iac
+R=repos/paperkeel/infisical-iac
 gh api -X PUT $R/environments/terraform-plan -f 'deployment_branch_policy=null' >/dev/null
 # production: reviewers + main only
 gh api -X PUT $R/environments/production \
@@ -30,7 +30,7 @@ gh api -X PUT $R/environments/bootstrap \
   --input - <<'JSON'
 {"reviewers":[{"type":"Team","id":REPLACE_WITH_TEAM_ID}],"deployment_branch_policy":{"protected_branches":true,"custom_branch_policies":false}}
 JSON
-# team id: gh api orgs/bearfire-dev/teams/platform --jq .id
+# team id: gh api orgs/paperkeel/teams/platform --jq .id
 ```
 
 ## 2. Infisical organization
@@ -74,8 +74,8 @@ The bootstrap root creates the identities that `bootstrap.yml` authenticates wit
 ```bash
 cd bootstrap/terraform
 cp bootstrap.example.tfvars bootstrap.auto.tfvars        # git-ignored
-gh api repos/bearfire-dev/infisical-iac --jq .id         # → github_repository_id
-gh api orgs/bearfire-dev --jq .id                        # → github_owner_id
+gh api repos/paperkeel/infisical-iac --jq .id         # → github_repository_id
+gh api orgs/paperkeel --jq .id                        # → github_owner_id
 $EDITOR bootstrap.auto.tfvars                            # organization_id, github_repository_id, github_owner_id (all strings)
 cd ../..
 
@@ -118,7 +118,7 @@ Replace every value that starts with `replace_default_key_`. The composite actio
 ## 7. GitHub repository variables (non-secret)
 
 ```bash
-R=bearfire-dev/infisical-iac
+R=paperkeel/infisical-iac
 terraform -chdir=bootstrap/terraform output -json github_variables | jq -r 'to_entries[] | "\(.key) \(.value)"' \
   | while read -r k v; do gh variable set "$k" --repo $R --body "$v"; done
 gh variable set INFISICAL_ORG_SLUG      --repo $R --body bearfire
@@ -131,8 +131,8 @@ Expected set: `INFISICAL_HOST`, `INFISICAL_ORG_ID`, `INFISICAL_ORG_SLUG`, `INFIS
 ## 8. Verify OIDC
 
 ```bash
-gh workflow run plan.yml --repo bearfire-dev/infisical-iac -f root=global
-gh run watch --repo bearfire-dev/infisical-iac
+gh workflow run plan.yml --repo paperkeel/infisical-iac -f root=global
+gh run watch --repo paperkeel/infisical-iac
 ```
 
 Success = the `Authenticate to Infisical (plan identity)` step prints `Authenticated to Infisical as identity ...` and the global plan runs (it will show creates; nothing is applied). Failure modes: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) → OIDC.
@@ -144,7 +144,7 @@ Success = the `Authenticate to Infisical (plan identity)` step prints `Authentic
 Open a PR touching `global/` (for example the Railway `credentialVersion` comment) or dispatch:
 
 ```bash
-gh workflow run apply.yml --repo bearfire-dev/infisical-iac -f root=global
+gh workflow run apply.yml --repo paperkeel/infisical-iac -f root=global
 ```
 
 Approve the `production` deployment. The job applies the App Connections, runs `pnpm connections:lock`, and opens `chore/connections-lock`. Merge it; `global/connections.lock.json` now has real IDs and `status` is no longer `unbootstrapped`.

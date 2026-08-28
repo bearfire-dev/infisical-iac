@@ -38,7 +38,7 @@ Plan expectation for one new secret in two environments: `+2 infisical_secret.sl
 ## 4. Application PR
 
 ```text
-Depends on bearfire-dev/infisical-iac#<n>
+Depends on paperkeel/infisical-iac#<n>
 Secret readiness:
 - [ ] STRIPE_WEBHOOK_SECRET populated in preview, prod (`pnpm secrets:check <slug>`)
 - [ ] delivered to <destination> (`pnpm sync:status <slug>`)

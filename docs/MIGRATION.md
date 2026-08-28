@@ -16,7 +16,7 @@ Hard rule: **never create a placeholder that overwrites a known-good production 
 
 ```bash
 infisical secrets --projectId <id> --env prod --path /runtime --plain 2>/dev/null | awk '{print $1}'    # names only
-gh secret list --repo bearfire-dev/<app>
+gh secret list --repo paperkeel/<app>
 ```
 
 Write the `project.yaml` so every existing secret is declared with `required_in` matching reality. Choose folders carefully: one secret set per destination ownership.
@@ -69,7 +69,7 @@ Apply, then `pnpm secrets:check <slug>` (values now present in Infisical) and `p
 
 - Delete duplicate GitHub secrets that are not in any declared set (they are now drift).
 - Remove `wrangler secret put` / Railway UI steps from app runbooks.
-- App PRs stop carrying secret-handling instructions; they reference `Depends on bearfire-dev/infisical-iac#<n>`.
+- App PRs stop carrying secret-handling instructions; they reference `Depends on paperkeel/infisical-iac#<n>`.
 
 ## Railway bridge → native resource (future)
 

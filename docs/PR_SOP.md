@@ -18,7 +18,7 @@ Plan §18. Two PR kinds: **platform** (this repo) and **application** (consumer 
 Description includes:
 
 ```text
-Depends on bearfire-dev/infisical-iac#<n>
+Depends on paperkeel/infisical-iac#<n>
 
 Secret readiness
 - [ ] all referenced secrets populated: `pnpm secrets:check <slug>` exit 0

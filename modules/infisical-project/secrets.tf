@@ -27,7 +27,7 @@ resource "infisical_secret" "slot" {
   metadata = merge(
     {
       managed_by = "terraform"
-      repository = "bearfire-dev/infisical-iac"
+      repository = "paperkeel/infisical-iac"
       project    = local.project_slug
       secret_set = each.value.secret_set
       required   = "true"
@@ -36,7 +36,7 @@ resource "infisical_secret" "slot" {
   )
 
   secret_reminder = each.value.reminder_days == null ? null : {
-    note        = "Review or rotate this secret (declared in bearfire-dev/infisical-iac)"
+    note        = "Review or rotate this secret (declared in paperkeel/infisical-iac)"
     repeat_days = each.value.reminder_days
   }
 

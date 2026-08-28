@@ -1,5 +1,5 @@
 {
-  "name": "@bearfire-dev/infisical-iac",
+  "name": "@paperkeel/infisical-iac",
   "version": "0.1.0",
   "private": true,
   "description": "Declarative control plane for Infisical projects, secret objects, identities, App Connections, and Secret Syncs across Bearfire projects.",
@@ -28,7 +28,7 @@
     "connections:check": "tsx tools/cli/src/connections-lock.ts check",
     "state:snapshot": "tsx tools/cli/src/state-snapshot.ts",
     "state:unlock": "tsx tools/cli/src/terraform.ts unlock",
-    "bootstrap:state": "pnpm --filter @bearfire-dev/infisical-iac-bootstrap-state deploy",
+    "bootstrap:state": "pnpm --filter @paperkeel/infisical-iac-bootstrap-state deploy",
     "infisical:reconcile": "tsx tools/infisical-api-bridge/src/reconcile.ts",
     "provider:acceptance": "bash scripts/provider-acceptance.sh"
   },

@@ -4,7 +4,7 @@
 
 | Cause | Check | Fix |
 |---|---|---|
-| Job not in the right environment | `environment:` on the job; subject is `repo:bearfire-dev/infisical-iac:environment:<env>` | plan jobs use `terraform-plan`; apply/bootstrap use `production`/`bootstrap` |
+| Job not in the right environment | `environment:` on the job; subject is `repo:paperkeel/infisical-iac:environment:<env>` | plan jobs use `terraform-plan`; apply/bootstrap use `production`/`bootstrap` |
 | Audience mismatch | `INFISICAL_OIDC_AUDIENCE` variable vs `bound_audiences` on the identity | both `infisical-iac` |
 | Apply on non-main ref | apply binding pins `ref=refs/heads/main` | dispatch apply only from `main` |
 | Repository transferred/renamed | `repository_id` / `repository_owner_id` claims pinned | update `bootstrap.auto.tfvars` and re-apply bootstrap (locally if identities are unreachable) |

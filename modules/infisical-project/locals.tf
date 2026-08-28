@@ -67,7 +67,7 @@ locals {
         disable_secret_deletion = !try(sync.manage_deletions, true)
         initial_sync_behavior   = try(sync.initial_sync_behavior, "overwrite-destination")
         key_schema              = try(sync.key_schema, null)
-        description             = try(sync.description, "Managed by bearfire-dev/infisical-iac (${local.project_slug})")
+        description             = try(sync.description, "Managed by paperkeel/infisical-iac (${local.project_slug})")
       }) if sync.type == type
     }
   }

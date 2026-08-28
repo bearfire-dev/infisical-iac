@@ -4,7 +4,7 @@ schema_version: 1
 project:
   name: Slate Rehm Portfolio
   slug: slaterehm-portfolio
-  description: CI deployment credentials for bearfire-dev/slaterehm-portfolio (Cloudflare Workers through Alchemy)
+  description: CI deployment credentials for paperkeel/slaterehm-portfolio (Cloudflare Workers through Alchemy)
 
 environments:
   preview:
@@ -38,7 +38,7 @@ syncs:
     source: { environment: preview, secret_set: ci }
     destination:
       scope: repository-environment
-      owner: bearfire-dev
+      owner: paperkeel
       repository: slaterehm-portfolio
       repository_environment: preview
     auto_sync: true
@@ -50,7 +50,7 @@ syncs:
     source: { environment: prod, secret_set: ci }
     destination:
       scope: repository-environment
-      owner: bearfire-dev
+      owner: paperkeel
       repository: slaterehm-portfolio
       repository_environment: production
     auto_sync: true

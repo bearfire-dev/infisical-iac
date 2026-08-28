@@ -14,7 +14,7 @@ Deletion removes the Infisical object **and**, through syncs with `manage_deleti
 1. Check consumers:
 
    ```bash
-   gh search code --owner bearfire-dev 'OLD_SECRET_NAME'
+   gh search code --owner paperkeel 'OLD_SECRET_NAME'
    ```
 
 2. Remove the secret (or the environment from `required_in`) in `project.yaml`. If it was the last secret of a set in that environment, the folder goes too (folders have `force_delete = false`; if Infisical holds non-Terraform secrets there, the apply fails — clean them up first).

@@ -74,7 +74,7 @@ syncs:
       secret_set: ci
     destination:
       scope: repository
-      owner: bearfire-dev
+      owner: paperkeel
       repository: sigla-writer
     auto_sync: true
     manage_deletions: true
